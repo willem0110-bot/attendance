@@ -55,9 +55,9 @@
       </div><div class="flex items-center gap-2 mt-2 text-xs text-gray-400"><span class="status-dot bg-green-400"></span><span>系統運作正常</span></div></div>
     <div class="flex gap-2 bg-white/20 rounded-2xl p-1"><button onclick="switchTab('punch')" id="tab-punch" class="tab-btn active flex-1 py-2.5 rounded-xl font-bold text-sm text-center">📍 打卡</button><button onclick="switchTab('leave')" id="tab-leave" class="tab-btn flex-1 py-2.5 rounded-xl font-bold text-sm text-center">📋 請假</button><button onclick="switchTab('history')" id="tab-history" class="tab-btn flex-1 py-2.5 rounded-xl font-bold text-sm text-center">📄 紀錄</button></div>
     <div id="panel-punch" class="space-y-3"><div class="grid grid-cols-2 gap-3"><button onclick="handlePunch('上班')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-clockin/10 flex items-center justify-center text-3xl mb-3">☀️</div><span class="font-bold text-gray-800 text-lg">上班</span><p class="text-xs text-gray-400 mt-1">Clock In</p></button><button onclick="handlePunch('午休外出')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-lunchout/10 flex items-center justify-center text-3xl mb-3">🍱</div><span class="font-bold text-gray-800 text-lg">午休外出</span><p class="text-xs text-gray-400 mt-1">Lunch Out</p></button><button onclick="handlePunch('午休返回')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-lunchin/10 flex items-center justify-center text-3xl mb-3">🔙</div><span class="font-bold text-gray-800 text-lg">午休返回</span><p class="text-xs text-gray-400 mt-1">Lunch In</p></button><button onclick="handlePunch('下班')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-clockout/10 flex items-center justify-center text-3xl mb-3">🌙</div><span class="font-bold text-gray-800 text-lg">下班</span><p class="text-xs text-gray-400 mt-1">Clock Out</p></button></div><p class="text-center text-xs text-white/60 pt-1">📍 打卡時將自動驗證您的所在位置</p></div>
-    <div id="panel-leave" class="hidden"><div class="glass-card rounded-2xl p-5 space-y-4"><div class="text-center"><div class="text-2xl mb-1">📝</div><h3 class="font-bold text-gray-800">請假申請</h3></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">假別</label><select id="leave-type" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm bg-white"><option value="">請選擇假別</option><option value="事假">事假（無薪）</option><option value="半薪病假">半薪病假</option><option value="特休">特休（全薪）</option><option value="生理假">生理假（每月1日）</option><option value="產檢假">產檢假</option><option value="婚假">婚假</option><option value="喪假">喪假</option></select></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-bold text-gray-600 mb-1.5">開始時間</label><input type="datetime-local" id="leave-start" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm" /></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">結束時間</label><input type="datetime-local" id="leave-end" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm" /></div></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">事由</label><textarea id="leave-note" rows="2" placeholder="請簡述請假原因" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm resize-none"></textarea></div><button onclick="handleLeave()" id="btn-leave" class="w-full py-3 bg-leave text-white font-bold rounded-xl btn-punch">送出請假申請</button></div><p class="text-center text-xs text-white/60 pt-2">📋 請假不需定位 ｜ 特休與生理假有額度限制</p></div>
+    <div id="panel-leave" class="hidden"><div class="glass-card rounded-2xl p-5 space-y-4"><div class="text-center"><div class="text-2xl mb-1">📝</div><h3 class="font-bold text-gray-800">請假申請</h3></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">假別</label><select id="leave-type" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm bg-white"><option value="">請選擇假別</option><option value="特休">特休（全薪）</option><option value="普通病假">普通病假（半薪）</option><option value="事假">事假（無薪）</option><option value="生理假">生理假（每月1日）</option><option value="婚假">婚假（8日）</option><option value="喪假">喪假（3-8日）</option><option value="公假">公假</option><option value="產假">產假（8週）</option><option value="陪產檢及陪產假">陪產檢及陪產假（7日）</option><option value="產檢假">產檢假（7日）</option><option value="育嬰留職停薪">育嬰留職停薪</option><option value="家庭照顧假">家庭照顧假</option></select></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-bold text-gray-600 mb-1.5">開始時間</label><input type="datetime-local" id="leave-start" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm" /></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">結束時間</label><input type="datetime-local" id="leave-end" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm" /></div></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">事由</label><textarea id="leave-note" rows="2" placeholder="請簡述請假原因" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm resize-none"></textarea></div><button onclick="handleLeave()" id="btn-leave" class="w-full py-3 bg-leave text-white font-bold rounded-xl btn-punch">送出請假申請</button></div><p class="text-center text-xs text-white/60 pt-2">📋 請假不需定位 ｜ 特休與生理假有額度限制</p></div>
     <div id="panel-history" class="hidden"><div class="glass-card rounded-2xl p-5"><div class="text-center mb-3"><div class="text-2xl mb-1">📄</div><h3 class="font-bold text-gray-800">請假紀錄</h3></div><div id="leave-history" class="space-y-2 max-h-80 overflow-y-auto"><p class="text-center text-gray-400 text-sm py-4">載入中...</p></div></div></div>
-  <div id="admin-section" class="hidden glass-card rounded-2xl p-5 border-2 border-purple-300"><div class="flex items-center gap-2 mb-3"><span class="text-2xl">🔧</span><div><div class="font-bold text-purple-800">管理員工具</div><div class="text-[10px] text-purple-600">僅限負責人可見</div></div></div><button onclick="openTeacherOverviewModal()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">👥 老師總覽</button><div class="grid grid-cols-2 gap-2"><button onclick="openAdjustModal()" class="bg-purple-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整特休</button><button onclick="openAdjustPeriodModal()" class="bg-blue-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整起迄日</button><button onclick="openLogModal()" class="bg-purple-100 text-purple-700 rounded-xl py-3 font-medium text-sm border border-purple-200 active:scale-95 transition">調整紀錄</button><button onclick="refreshQuota()" class="bg-gray-100 text-gray-700 rounded-xl py-3 font-medium text-sm border border-gray-200 active:scale-95 transition">🔄 重新整理</button></div></div>
+  <div id="admin-section" class="hidden glass-card rounded-2xl p-5 border-2 border-purple-300"><div class="flex items-center gap-2 mb-3"><span class="text-2xl">🔧</span><div><div class="font-bold text-purple-800">管理員工具</div><div class="text-[10px] text-purple-600">僅限負責人可見</div></div></div><button onclick="openTeacherOverviewModal()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">👥 老師總覽</button><button onclick="openPendingLeaveModal()" id="btn-pending-leave" class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2 relative">📋 待核准請假<span id="pending-leave-badge" class="hidden absolute top-1 right-3 bg-white text-red-600 text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">0</span></button><div class="grid grid-cols-2 gap-2"><button onclick="openAdjustModal()" class="bg-purple-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整特休</button><button onclick="openAdjustPeriodModal()" class="bg-blue-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整起迄日</button><button onclick="openLogModal()" class="bg-purple-100 text-purple-700 rounded-xl py-3 font-medium text-sm border border-purple-200 active:scale-95 transition">調整紀錄</button><button onclick="refreshQuota()" class="bg-gray-100 text-gray-700 rounded-xl py-3 font-medium text-sm border border-gray-200 active:scale-95 transition">🔄 重新整理</button></div></div>
   </div>
 </div>
 <div id="modal" class="fixed inset-0 z-50 hidden"><div class="modal-overlay absolute inset-0 bg-black/40 flex items-center justify-center p-6"><div class="modal-content glass-card rounded-3xl p-8 w-full max-w-sm text-center"><div id="modal-icon" class="text-6xl mb-4"></div><h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-2"></h3><p id="modal-message" class="text-gray-600 text-sm mb-2"></p><p id="modal-detail" class="text-gray-400 text-xs mb-6"></p><button onclick="closeModal()" class="w-full py-3 bg-brand text-white font-bold rounded-xl btn-punch">確認</button></div></div></div>
@@ -197,5 +197,86 @@ async function openTeacherOverviewModal(){
 
 </script>
 <div id="admin-modal" class="fixed inset-0 z-50 hidden"><div class="modal-overlay absolute inset-0 bg-black/40 flex items-center justify-center p-4"><div class="modal-content bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl"><div class="flex items-center justify-between mb-4"><h3 id="admin-modal-title" class="text-lg font-bold text-gray-800">管理員工具</h3><button onclick="closeAdminModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button></div><div id="admin-modal-body"></div></div></div></div>
+
+<script>
+// === v7: 待核准請假 ===
+async function openPendingLeaveModal(){
+  const modal = document.getElementById("admin-modal");
+  const body = document.getElementById("admin-modal-body");
+  modal.classList.remove("hidden");
+  body.innerHTML = '<div class="text-center py-10 text-gray-400">載入中…</div>';
+  try {
+    const r = await postToGAS({ action: "getPendingLeaves", adminUid: userId });
+    if (!r || !r.ok) {
+      body.innerHTML = '<div class="text-center py-8 text-red-500">' + ((r&&r.error)||"載入失敗") + '</div>';
+      return;
+    }
+    renderPendingLeaves(r.pending || []);
+  } catch(e) {
+    body.innerHTML = '<div class="text-center py-8 text-red-500">錯誤：' + e.message + '</div>';
+  }
+}
+
+function renderPendingLeaves(list){
+  const body = document.getElementById("admin-modal-body");
+  if (!list.length) {
+    body.innerHTML = '<div class="text-center py-10"><div class="text-4xl mb-2">🎉</div><div class="text-gray-500">目前沒有待核准的請假</div></div>';
+    refreshPendingBadge();
+    return;
+  }
+  let html = '<div class="flex items-center justify-between mb-3"><div class="text-sm text-gray-600">共 ' + list.length + ' 筆待核准</div><button onclick="openPendingLeaveModal()" class="text-xs text-blue-600">🔄 重新整理</button></div>';
+  html += '<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">';
+  list.forEach(it => {
+    const reasonHtml = it.reason ? '<div class="text-xs text-gray-700 mb-2 bg-white rounded-lg p-2 border border-orange-100">事由：' + escapeHtml(it.reason) + '</div>' : '';
+    html += '<div class="border-2 border-orange-200 rounded-xl p-3 bg-orange-50">' +
+      '<div class="flex justify-between items-start mb-2"><div><div class="font-bold text-gray-800">' + escapeHtml(it.name) + ' <span class="text-orange-600 text-sm">· ' + escapeHtml(it.leaveType) + '</span></div><div class="text-xs text-gray-500 mt-0.5">' + escapeHtml(it.start) + ' ~ ' + escapeHtml(it.end) + '</div><div class="text-xs text-gray-600 mt-0.5 font-medium">' + it.days + ' 天 / ' + it.hours + ' 小時</div></div></div>' +
+      reasonHtml +
+      '<input type="text" id="remark-' + it.row + '" placeholder="審核備註（選填）" class="w-full px-2 py-1.5 text-xs rounded-lg border border-orange-200 mb-2 focus:outline-none focus:border-orange-400">' +
+      '<div class="grid grid-cols-2 gap-2"><button onclick="decideLeave(' + it.row + ', \'approve\')" class="bg-green-500 text-white rounded-lg py-2 text-sm font-medium active:scale-95 transition">✅ 核准</button><button onclick="decideLeave(' + it.row + ', \'reject\')" class="bg-red-500 text-white rounded-lg py-2 text-sm font-medium active:scale-95 transition">❌ 退回</button></div>' +
+      '</div>';
+  });
+  html += '</div>';
+  body.innerHTML = html;
+  const badge = document.getElementById("pending-leave-badge");
+  if (badge) { badge.textContent = list.length; badge.classList.remove("hidden"); }
+}
+
+function escapeHtml(s){ return String(s||"").replace(/[&<>"\']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","\'":"&#39;"})[c]); }
+
+async function decideLeave(row, decision){
+  const remarkEl = document.getElementById("remark-" + row);
+  const remark = remarkEl ? remarkEl.value : "";
+  const msg = decision === "approve" ? "確定核准這筆請假？\n\n核准後會自動加入 Google 日曆。" : "確定退回這筆請假？";
+  if (!confirm(msg)) return;
+  try {
+    const r = await postToGAS({ action: "approveLeave", adminUid: userId, row: row, decision: decision, remark: remark });
+    if (r && r.ok) {
+      openPendingLeaveModal();
+    } else {
+      alert("失敗：" + ((r && r.error) || "未知錯誤"));
+    }
+  } catch(e) {
+    alert("錯誤：" + e.message);
+  }
+}
+
+async function refreshPendingBadge(){
+  try {
+    if (typeof userId === "undefined" || !userId) return;
+    const r = await postToGAS({ action: "getPendingLeaves", adminUid: userId });
+    const badge = document.getElementById("pending-leave-badge");
+    if (!badge) return;
+    if (r && r.ok && r.pending && r.pending.length) {
+      badge.textContent = r.pending.length;
+      badge.classList.remove("hidden");
+    } else {
+      badge.classList.add("hidden");
+    }
+  } catch(e) {}
+}
+
+// 進入園長介面後同步一次待核准數
+setTimeout(function(){ if (typeof userId !== "undefined" && userId) refreshPendingBadge(); }, 3000);
+</script>
 </body>
 </html>
