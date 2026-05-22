@@ -159,7 +159,33 @@ async function resetPeriod(){
 // ============================================================
 // v6.6 老師總覽
 // ============================================================
-async function openTeacherOverviewModal(){
+async 
+function renderOtherLeavesBadges(obj){
+  if (!obj) return "";
+  var keys = Object.keys(obj);
+  if (!keys.length) return '<div class="mt-2 pt-2 border-t border-gray-100 text-[11px] text-gray-400 italic">本期無其他已請假別</div>';
+  var colors = {
+    "普通病假":"bg-red-50 text-red-700 border-red-200",
+    "半薪病假":"bg-red-50 text-red-700 border-red-200",
+    "事假":"bg-yellow-50 text-yellow-800 border-yellow-200",
+    "生理假":"bg-pink-50 text-pink-700 border-pink-200",
+    "婚假":"bg-purple-50 text-purple-700 border-purple-200",
+    "喪假":"bg-gray-100 text-gray-700 border-gray-300",
+    "公假":"bg-blue-50 text-blue-700 border-blue-200",
+    "產假":"bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+    "陪產檢及陪產假":"bg-sky-50 text-sky-700 border-sky-200",
+    "產檢假":"bg-emerald-50 text-emerald-700 border-emerald-200",
+    "育嬰留職停薪":"bg-orange-50 text-orange-700 border-orange-200",
+    "家庭照顧假":"bg-rose-50 text-rose-700 border-rose-200"
+  };
+  return '<div class="mt-2 pt-2 border-t border-gray-100"><div class="text-[10px] text-gray-500 mb-1">其他已請假別</div><div class="flex flex-wrap gap-1">' +
+    keys.map(function(k){
+      var cls = colors[k] || "bg-gray-50 text-gray-700 border-gray-200";
+      return '<span class="text-[11px] px-1.5 py-0.5 rounded-md border ' + cls + '">' + k + ' <b>' + obj[k] + '</b>天</span>';
+    }).join("") + '</div></div>';
+}
+
+function openTeacherOverviewModal(){
   const m=document.getElementById("admin-modal"),b=document.getElementById("admin-modal-body");
   document.getElementById("admin-modal-title").textContent="👥 老師總覽";
   b.innerHTML='<p class="text-center text-gray-400 text-sm py-6"><span class="spinner"></span> 載入老師資料中...</p>';
@@ -186,6 +212,7 @@ async function openTeacherOverviewModal(){
         +'</div>'
         +periodText
         +'<div class="text-[10px] text-gray-500 mt-0.5">年資 '+t.seniorityText+' ・ 到職 '+t.hireDate+'</div>'
+        +renderOtherLeavesBadges(t.otherLeaves)
         +'</div>';
     }).join('');
     
