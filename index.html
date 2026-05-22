@@ -159,7 +159,6 @@ async function resetPeriod(){
 // ============================================================
 // v6.6 老師總覽
 // ============================================================
-async 
 function renderOtherLeavesBadges(obj){
   if (!obj) return "";
   var keys = Object.keys(obj);
@@ -185,7 +184,7 @@ function renderOtherLeavesBadges(obj){
     }).join("") + '</div></div>';
 }
 
-function openTeacherOverviewModal(){
+async function openTeacherOverviewModal(){
   const m=document.getElementById("admin-modal"),b=document.getElementById("admin-modal-body");
   document.getElementById("admin-modal-title").textContent="👥 老師總覽";
   b.innerHTML='<p class="text-center text-gray-400 text-sm py-6"><span class="spinner"></span> 載入老師資料中...</p>';
