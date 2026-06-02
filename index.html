@@ -174,39 +174,28 @@ function escapeHtmlSafe(s) {
     .replace(/'/g, '&#39;');
 }
 
-function openTeacherLeaveDetail(teacherUid, teacherName) {
+async function openTeacherLeaveDetail(teacherUid, teacherName) {
   var modalBody = document.getElementById('admin-modal-body');
   if (!modalBody) return;
-  
-  // 显示加载中
-  modalBody.innerHTML = '<p class="text-gray-500 text-center py-4">載入中...</p>';
-  
-  // 调用后端获取该老师的完整请假纪录
-  var payload = {
-    action: 'getTeacherLeaveDetail',
-    adminUid: (JSON.parse(sessionStorage.getItem('userInfo') || '{}')).uid || '',
-    teacherUid: teacherUid
-  };
-  
-  fetch(GAS_URL, {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.error) {
-      modalBody.innerHTML = '<p class="text-red-500 text-sm">錯誤：' + escapeHtmlSafe(data.error) + '</p>';
-      return;
-    }
-    modalBody.innerHTML = renderTeacherLeaveDetail(data.leaves || [], teacherName);
-  })
-  .catch(e => {
-    modalBody.innerHTML = '<p class="text-red-500 text-sm">網路錯誤：' + escapeHtmlSafe(e.message) + '</p>';
-  });
-  
-  // 显示 modal 并更新标题
+
+  // 更新标题并显示 modal
   document.getElementById('admin-modal-title').textContent = '📋 ' + escapeHtmlSafe(teacherName) + ' 的完整請假紀錄';
   document.getElementById('admin-modal').classList.remove('hidden');
+  modalBody.innerHTML = '<p class="text-gray-500 text-center py-4">載入中...</p>';
+
+  // 调用后端获取该老师的完整请假纪录（与其他管理功能一致：使用全域 userId + postToGAS）
+  try {
+    const r = await postToGAS({ uid: userId, action: "getTeacherLeaveDetail", adminUid: userId, teacherUid: teacherUid });
+    if (!r.ok) {
+      modalBody.innerHTML = '<p class="text-red-500 text-sm">錯誤：' + escapeHtmlSafe(r.error || '載入失敗') + '</p>'
+        + '<button onclick="closeAdminModal()" class="w-full mt-3 bg-gray-100 text-gray-700 rounded-xl py-2.5 font-medium text-sm">← 返回老師總覽</button>';
+      return;
+    }
+    modalBody.innerHTML = renderTeacherLeaveDetail(r.leaves || [], teacherName);
+  } catch (e) {
+    modalBody.innerHTML = '<p class="text-red-500 text-sm">網路錯誤</p>'
+      + '<button onclick="closeAdminModal()" class="w-full mt-3 bg-gray-100 text-gray-700 rounded-xl py-2.5 font-medium text-sm">← 返回老師總覽</button>';
+  }
 }
 
 function renderTeacherLeaveDetail(leaves, teacherName) {
