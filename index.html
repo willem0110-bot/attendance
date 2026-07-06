@@ -6,6 +6,31 @@
   <title>星安幼兒園出缺勤系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+/* v6.7 錯誤自動上報 → 星安錯誤紀錄中心 */
+(function(){
+  var ERR_URL="https://script.google.com/macros/s/AKfycbwsEIxawgjZ1LeSNjEtFNVrMwvVpBpH7BiuPkYTjMHMIjNT4_OItd4ndjCT4lnvdpB8LQ/exec";
+  var APP_NAME="教師出缺勤",APP_VERSION="v6.7";
+  var sent={};
+  function report(msg,src,line,col,stack){
+    try{
+      var key=String(msg).slice(0,80);
+      if(sent[key])return;sent[key]=1;
+      var payload={app:APP_NAME,version:APP_VERSION,message:String(msg||"").slice(0,500),source:String(src||"").slice(0,200),line:line||0,col:col||0,stack:String(stack||"").slice(0,1000),pageUrl:location.href.split("#")[0],ua:navigator.userAgent,uid:(typeof userId!=="undefined"&&userId)?userId:""};
+      fetch(ERR_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload),keepalive:true}).catch(function(){});
+    }catch(e){}
+  }
+  window.addEventListener("error",function(e){
+    if(e&&e.target&&e.target!==window&&(e.target.tagName==="SCRIPT"||e.target.tagName==="LINK"||e.target.tagName==="IMG")){report("資源載入失敗: "+(e.target.src||e.target.href||""),"resource",0,0,"");return}
+    report(e.message,e.filename,e.lineno,e.colno,e.error&&e.error.stack);
+  },true);
+  window.addEventListener("unhandledrejection",function(e){
+    var r=e&&e.reason;
+    report("未處理的Promise錯誤: "+(r&&r.message?r.message:String(r)),"promise",0,0,r&&r.stack);
+  });
+  window.XG_REPORT_ERROR=report;
+})();
+  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
     *{font-family:'Noto Sans TC',sans-serif}
