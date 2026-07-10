@@ -168,14 +168,14 @@ async function _doCancel(i){
     var r = await postToGAS({ uid:userId, action:"cancelLeave", adminUid:userId, row:x.row, reason:reason });
     if (r.ok){
       b.innerHTML = '<div class="text-center py-6"><div class="text-4xl mb-2">✅</div>' +
-        '<p class="font-bold">' + escapeHtml(r.message) + '</p></div>' +
+        '<p class="font-bold whitespace-pre-line">' + escapeHtml(r.message) + '</p></div>' +
         '<button onclick="openCancelLeaveModal()" class="w-full bg-[#B84A2F] text-white rounded-xl py-2.5 font-medium text-sm">繼續銷其他筆</button>' +
         _closeBtn();
       refreshQuota();
       refreshPendingBadge();
     } else {
       b.innerHTML = '<div class="text-center py-4"><div class="text-4xl mb-2">🚫</div>' +
-        '<p class="text-sm text-red-600 leading-relaxed">' + escapeHtml(r.error || "銷假失敗") + '</p></div>' +
+        '<p class="text-sm text-red-600 leading-relaxed">' + escapeHtml(r.error || r.message || "銷假失敗") + '</p></div>' +
         '<button onclick="openCancelLeaveModal()" class="w-full bg-gray-100 text-gray-700 rounded-xl py-2.5 font-medium text-sm">返回清單</button>';
     }
   } catch(e){
@@ -213,7 +213,7 @@ async function _doTyphoon(){
   try {
     var r = await postToGAS({ uid:userId, action:"typhoonDay", adminUid:userId, date:date, note:note });
     if (!r.ok){
-      b.innerHTML = '<p class="text-red-500 text-sm">' + escapeHtml(r.error || "設定失敗") + '</p>' + _closeBtn();
+      b.innerHTML = '<p class="text-red-500 text-sm">' + escapeHtml(r.error || r.message || "設定失敗") + '</p>' + _closeBtn();
       return;
     }
     var html = '<div class="text-center py-4"><div class="text-4xl mb-2">🌀</div>' +
