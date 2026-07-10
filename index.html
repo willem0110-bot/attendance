@@ -6,31 +6,6 @@
   <title>星安幼兒園出缺勤系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script>
-/* v6.7 錯誤自動上報 → 星安錯誤紀錄中心 */
-(function(){
-  var ERR_URL="https://script.google.com/macros/s/AKfycbwsEIxawgjZ1LeSNjEtFNVrMwvVpBpH7BiuPkYTjMHMIjNT4_OItd4ndjCT4lnvdpB8LQ/exec";
-  var APP_NAME="教師出缺勤",APP_VERSION="v6.7";
-  var sent={};
-  function report(msg,src,line,col,stack){
-    try{
-      var key=String(msg).slice(0,80);
-      if(sent[key])return;sent[key]=1;
-      var payload={app:APP_NAME,version:APP_VERSION,message:String(msg||"").slice(0,500),source:String(src||"").slice(0,200),line:line||0,col:col||0,stack:String(stack||"").slice(0,1000),pageUrl:location.href.split("#")[0],ua:navigator.userAgent,uid:(typeof userId!=="undefined"&&userId)?userId:""};
-      fetch(ERR_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload),keepalive:true}).catch(function(){});
-    }catch(e){}
-  }
-  window.addEventListener("error",function(e){
-    if(e&&e.target&&e.target!==window&&(e.target.tagName==="SCRIPT"||e.target.tagName==="LINK"||e.target.tagName==="IMG")){report("資源載入失敗: "+(e.target.src||e.target.href||""),"resource",0,0,"");return}
-    report(e.message,e.filename,e.lineno,e.colno,e.error&&e.error.stack);
-  },true);
-  window.addEventListener("unhandledrejection",function(e){
-    var r=e&&e.reason;
-    report("未處理的Promise錯誤: "+(r&&r.message?r.message:String(r)),"promise",0,0,r&&r.stack);
-  });
-  window.XG_REPORT_ERROR=report;
-})();
-  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
     *{font-family:'Noto Sans TC',sans-serif}
@@ -51,7 +26,7 @@
     .tab-btn{transition:all .2s ease}.tab-btn.active{background:#fff;color:#6366f1;box-shadow:0 2px 8px rgba(0,0,0,0.1)}.tab-btn:not(.active){background:transparent;color:rgba(255,255,255,0.7)}
     select,input[type="datetime-local"]{-webkit-appearance:none}
     .status-badge{display:inline-block;padding:2px 8px;border-radius:9999px;font-size:0.7rem;font-weight:700}
-    .status-pending{background:#fef3c7;color:#92400e}.status-approved{background:#d1fae5;color:#065f46}.status-rejected{background:#fee2e2;color:#991b1b}.status-adjust{background:#ede9fe;color:#7c3aed}
+    .status-pending{background:#fef3c7;color:#92400e}.status-approved{background:#d1fae5;color:#065f46}.status-rejected{background:#fee2e2;color:#991b1b}.status-adjust{background:#ede9fe;color:#7c3aed}.status-cancel{background:#f9e0d8;color:#B84A2F}
   </style>
   <script>tailwind.config={theme:{extend:{colors:{brand:{DEFAULT:'#6366f1',light:'#818cf8',dark:'#4f46e5'},clockin:{DEFAULT:'#10b981',dark:'#059669'},lunchout:{DEFAULT:'#f59e0b',dark:'#d97706'},lunchin:{DEFAULT:'#3b82f6',dark:'#2563eb'},clockout:{DEFAULT:'#ef4444',dark:'#dc2626'},leave:{DEFAULT:'#8b5cf6',dark:'#7c3aed'}}}}};</script>
 </head>
@@ -82,7 +57,7 @@
     <div id="panel-punch" class="space-y-3"><div class="grid grid-cols-2 gap-3"><button onclick="handlePunch('上班')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-clockin/10 flex items-center justify-center text-3xl mb-3">☀️</div><span class="font-bold text-gray-800 text-lg">上班</span><p class="text-xs text-gray-400 mt-1">Clock In</p></button><button onclick="handlePunch('午休外出')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-lunchout/10 flex items-center justify-center text-3xl mb-3">🍱</div><span class="font-bold text-gray-800 text-lg">午休外出</span><p class="text-xs text-gray-400 mt-1">Lunch Out</p></button><button onclick="handlePunch('午休返回')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-lunchin/10 flex items-center justify-center text-3xl mb-3">🔙</div><span class="font-bold text-gray-800 text-lg">午休返回</span><p class="text-xs text-gray-400 mt-1">Lunch In</p></button><button onclick="handlePunch('下班')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-clockout/10 flex items-center justify-center text-3xl mb-3">🌙</div><span class="font-bold text-gray-800 text-lg">下班</span><p class="text-xs text-gray-400 mt-1">Clock Out</p></button></div><p class="text-center text-xs text-white/60 pt-1">📍 打卡時將自動驗證您的所在位置</p></div>
     <div id="panel-leave" class="hidden"><div class="glass-card rounded-2xl p-5 space-y-4"><div class="text-center"><div class="text-2xl mb-1">📝</div><h3 class="font-bold text-gray-800">請假申請</h3></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">假別</label><select id="leave-type" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm bg-white"><option value="">請選擇假別</option><option value="特休">特休（全薪）</option><option value="普通病假">普通病假（半薪）</option><option value="事假">事假（無薪）</option><option value="生理假">生理假（每月1日）</option><option value="婚假">婚假（8日）</option><option value="喪假">喪假（3-8日）</option><option value="公假">公假</option><option value="產假">產假（8週）</option><option value="陪產檢及陪產假">陪產檢及陪產假（7日）</option><option value="產檢假">產檢假（7日）</option><option value="育嬰留職停薪">育嬰留職停薪</option><option value="家庭照顧假">家庭照顧假</option></select></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-bold text-gray-600 mb-1.5">開始時間</label><input type="datetime-local" id="leave-start" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm" /></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">結束時間</label><input type="datetime-local" id="leave-end" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm" /></div></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">事由</label><textarea id="leave-note" rows="2" placeholder="請簡述請假原因" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm resize-none"></textarea></div><button onclick="handleLeave()" id="btn-leave" class="w-full py-3 bg-leave text-white font-bold rounded-xl btn-punch">送出請假申請</button></div><p class="text-center text-xs text-white/60 pt-2">📋 請假不需定位 ｜ 特休與生理假有額度限制</p></div>
     <div id="panel-history" class="hidden"><div class="glass-card rounded-2xl p-5"><div class="text-center mb-3"><div class="text-2xl mb-1">📄</div><h3 class="font-bold text-gray-800">請假紀錄</h3></div><div id="leave-history" class="space-y-2 max-h-80 overflow-y-auto"><p class="text-center text-gray-400 text-sm py-4">載入中...</p></div></div></div>
-  <div id="admin-section" class="hidden glass-card rounded-2xl p-5 border-2 border-purple-300"><div class="flex items-center gap-2 mb-3"><span class="text-2xl">🔧</span><div><div class="font-bold text-purple-800">管理員工具</div><div class="text-[10px] text-purple-600">僅限負責人可見</div></div></div><button onclick="openTeacherOverviewModal()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">👥 老師總覽</button><button onclick="openPendingLeaveModal()" id="btn-pending-leave" class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2 relative">📋 待核准請假<span id="pending-leave-badge" class="hidden absolute top-1 right-3 bg-white text-red-600 text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">0</span></button><button onclick="openAttReportModal()" class="w-full bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">📊 出勤查詢</button><div class="grid grid-cols-2 gap-2"><button onclick="openAdjustModal()" class="bg-purple-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整特休</button><button onclick="openAdjustPeriodModal()" class="bg-blue-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整起迄日</button><button onclick="openLogModal()" class="bg-purple-100 text-purple-700 rounded-xl py-3 font-medium text-sm border border-purple-200 active:scale-95 transition">調整紀錄</button><button onclick="refreshQuota()" class="bg-gray-100 text-gray-700 rounded-xl py-3 font-medium text-sm border border-gray-200 active:scale-95 transition">🔄 重新整理</button></div></div>
+  <div id="admin-section" class="hidden glass-card rounded-2xl p-5 border-2 border-purple-300"><div class="flex items-center gap-2 mb-3"><span class="text-2xl">🔧</span><div><div class="font-bold text-purple-800">管理員工具</div><div class="text-[10px] text-purple-600">僅限負責人可見</div></div></div><button onclick="openTeacherOverviewModal()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">👥 老師總覽</button><button onclick="openPendingLeaveModal()" id="btn-pending-leave" class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2 relative">📋 待核准請假<span id="pending-leave-badge" class="hidden absolute top-1 right-3 bg-white text-red-600 text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">0</span></button><button onclick="openAttReportModal()" class="w-full bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">📊 出勤查詢</button><button onclick="openCancelLeaveModal()" class="w-full bg-gradient-to-r from-rose-500 to-amber-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">✂️ 銷假（老師到班／取消請假）</button><button onclick="openTyphoonModal()" class="w-full bg-gradient-to-r from-slate-600 to-sky-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">🌀 天災停班設定</button><div class="grid grid-cols-2 gap-2"><button onclick="openAdjustModal()" class="bg-purple-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整特休</button><button onclick="openAdjustPeriodModal()" class="bg-blue-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整起迄日</button><button onclick="openLogModal()" class="bg-purple-100 text-purple-700 rounded-xl py-3 font-medium text-sm border border-purple-200 active:scale-95 transition">調整紀錄</button><button onclick="refreshQuota()" class="bg-gray-100 text-gray-700 rounded-xl py-3 font-medium text-sm border border-gray-200 active:scale-95 transition">🔄 重新整理</button></div></div>
   </div>
 </div>
 <div id="modal" class="fixed inset-0 z-50 hidden"><div class="modal-overlay absolute inset-0 bg-black/40 flex items-center justify-center p-6"><div class="modal-content glass-card rounded-3xl p-8 w-full max-w-sm text-center"><div id="modal-icon" class="text-6xl mb-4"></div><h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-2"></h3><p id="modal-message" class="text-gray-600 text-sm mb-2"></p><p id="modal-detail" class="text-gray-400 text-xs mb-6"></p><button onclick="closeModal()" class="w-full py-3 bg-brand text-white font-bold rounded-xl btn-punch">確認</button></div></div></div>
@@ -96,7 +71,7 @@ function updateClock(){const n=new Date(),w=["日","一","二","三","四","五"
 const DEPT_ROLES={"幼兒部":["老師","行政老師","清潔阿姨","廚房阿姨"],"托嬰中心":["主任","老師","行政老師","清潔阿姨","廚房阿姨"],"才藝部":["主任","老師","行政老師"],"運動教室":["主任","老師","行政老師"]};function updateRoleOptions(){const dept=document.getElementById("input-department").value;const sel=document.getElementById("input-role");sel.innerHTML='<option value="">請選擇角色</option>';if(DEPT_ROLES[dept]){DEPT_ROLES[dept].forEach(r=>{const opt=document.createElement("option");opt.value=r;opt.textContent=r;sel.appendChild(opt)});sel.disabled=false}else{sel.disabled=true}}async function handleBind(){const name=document.getElementById("input-name").value.trim();if(!name){showModal("⚠️","請輸入姓名","","");return}const dept=document.getElementById("input-department").value;if(!dept){showModal("⚠️","請選擇部門","","");return}const role=document.getElementById("input-role").value;if(!role){showModal("⚠️","請選擇角色","","");return}const hireDate=document.getElementById("input-hire-date").value;if(!hireDate){showModal("⚠️","請選擇到職日期","","");return}const btn=document.getElementById("btn-bind");btn.disabled=true;btn.innerHTML='<span class="spinner"><\/span> 綁定中...';try{const r=await postToGAS({uid:userId,action:"bind",lat:0,lon:0,bindName:name,department:dept,role:role,hireDate:hireDate});if(r.status==="ok"){userName=r.name;showModal("🎉","綁定成功！",userName+" 老師，歡迎使用","");document.querySelector("#modal button").onclick=()=>{closeModal();showMainScreen(null)}}else showModal("❌","綁定失敗",r.message||"","")}catch(e){showModal("❌","網路錯誤","","")}finally{btn.disabled=false;btn.textContent="確認綁定"}}
 async function handlePunch(a){showModal("⏳","定位中...","GPS","");try{const p=await getLocation();document.getElementById("modal-title").textContent="傳送中...";const r=await postToGAS({uid:userId,action:a,lat:p.lat,lon:p.lon});if(r.status==="ok")showModal("✅",a+" 打卡成功",r.message,r.time+" | "+r.distance+"m");else showModal("🚫","打卡失敗",r.message||"",r.distance?Math.round(r.distance)+"m":"")}catch(e){showModal("📍","定位失敗",e.message||"","")}}
 async function handleLeave(){const type=document.getElementById("leave-type").value,start=document.getElementById("leave-start").value,end=document.getElementById("leave-end").value,note=document.getElementById("leave-note").value.trim();if(!type){showModal("⚠️","請選擇假別","","");return}if(!start||!end){showModal("⚠️","請選擇時間","","");return}if(new Date(end)<=new Date(start)){showModal("⚠️","時間錯誤","結束時間必須晚於開始","");return}const btn=document.getElementById("btn-leave");btn.disabled=true;btn.innerHTML='<span class="spinner"><\/span> 送出中...';try{const r=await postToGAS({uid:userId,action:"leave",lat:0,lon:0,leaveType:type,leaveStart:start,leaveEnd:end,leaveNote:note});if(r.status==="ok"){showModal("✅","請假已送出",r.message,r.days+"天/"+r.hours+"hr");document.getElementById("leave-type").value="";document.getElementById("leave-note").value=""}else showModal("❌","申請失敗",r.message||"","")}catch(e){showModal("❌","網路錯誤","","")}finally{btn.disabled=false;btn.textContent="送出請假申請"}}
-async function loadHistory(){const el=document.getElementById("leave-history");el.innerHTML='<p class="text-center text-gray-400 text-sm py-4">載入中...</p>';try{const[lr,ar]=await Promise.all([postToGAS({uid:userId,action:"myLeaves",lat:0,lon:0}),postToGAS({uid:userId,action:"myAdjustments",lat:0,lon:0}).catch(()=>({status:"ok",adjustments:[]}))]);const _ts=s=>{const t=new Date(String(s||"").replace(/\//g,"-").replace(" ","T")).getTime();return isNaN(t)?0:t};const items=[];if(lr&&lr.status==="ok"&&lr.leaves)lr.leaves.forEach(l=>items.push({kind:"leave",ts:_ts(l.time),data:l}));if(ar&&ar.status==="ok"&&ar.adjustments)ar.adjustments.forEach(a=>items.push({kind:"adjust",ts:_ts(a.time),data:a}));if(items.length===0){el.innerHTML='<p class="text-center text-gray-400 text-sm py-4">尚無請假紀錄</p>';return}items.sort((a,b)=>b.ts-a.ts);el.innerHTML=items.map(it=>{if(it.kind==="adjust"){const a=it.data,pos=a.days>0,sign=pos?"+":"",col=pos?"text-green-600":"text-red-600";return '<div class="bg-purple-50 rounded-xl p-3 border border-purple-100"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-800">特休調整</span><span class="status-badge status-adjust">特休調整</span></div><p class="text-sm font-bold '+col+'">'+sign+a.days+' 天</p><p class="text-xs text-gray-400 mt-0.5">'+a.time+(a.reason?' ・'+a.reason:'')+'</p></div>'}const l=it.data,b=l.status==="已核准"?"status-approved":l.status==="拒絕"?"status-rejected":"status-pending";return '<div class="bg-gray-50 rounded-xl p-3"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-800">'+l.type+'</span><span class="status-badge '+b+'">'+l.status+'</span></div><p class="text-xs text-gray-500">'+l.start+' ~ '+l.end+'</p><p class="text-xs text-gray-400 mt-0.5">'+l.days+'天/'+l.hours+'hr'+(l.reason?' ・'+l.reason:'')+'</p>'+(l.remark?'<p class="text-xs text-brand mt-0.5">備註：'+l.remark+'</p>':'')+'</div>'}).join("")}catch(e){el.innerHTML='<p class="text-center text-red-400 text-sm py-4">載入失敗</p>'}}
+async function loadHistory(){const el=document.getElementById("leave-history");el.innerHTML='<p class="text-center text-gray-400 text-sm py-4">載入中...</p>';try{const[lr,ar]=await Promise.all([postToGAS({uid:userId,action:"myLeaves",lat:0,lon:0}),postToGAS({uid:userId,action:"myAdjustments",lat:0,lon:0}).catch(()=>({status:"ok",adjustments:[]}))]);const _ts=s=>{const t=new Date(String(s||"").replace(/\//g,"-").replace(" ","T")).getTime();return isNaN(t)?0:t};const items=[];if(lr&&lr.status==="ok"&&lr.leaves)lr.leaves.forEach(l=>items.push({kind:"leave",ts:_ts(l.time),data:l}));if(ar&&ar.status==="ok"&&ar.adjustments)ar.adjustments.forEach(a=>items.push({kind:"adjust",ts:_ts(a.time),data:a}));if(items.length===0){el.innerHTML='<p class="text-center text-gray-400 text-sm py-4">尚無請假紀錄</p>';return}items.sort((a,b)=>b.ts-a.ts);el.innerHTML=items.map(it=>{if(it.kind==="adjust"){const a=it.data,pos=a.days>0,sign=pos?"+":"",col=pos?"text-green-600":"text-red-600";return '<div class="bg-purple-50 rounded-xl p-3 border border-purple-100"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-800">特休調整</span><span class="status-badge status-adjust">特休調整</span></div><p class="text-sm font-bold '+col+'">'+sign+a.days+' 天</p><p class="text-xs text-gray-400 mt-0.5">'+a.time+(a.reason?' ・'+a.reason:'')+'</p></div>'}const l=it.data,b=l.status==="已核准"?"status-approved":l.status==="拒絕"?"status-rejected":l.status==="已銷假"?"status-cancel":"status-pending";return '<div class="bg-gray-50 rounded-xl p-3"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-800">'+l.type+'</span><span class="status-badge '+b+'">'+l.status+'</span></div><p class="text-xs text-gray-500">'+l.start+' ~ '+l.end+'</p><p class="text-xs text-gray-400 mt-0.5">'+l.days+'天/'+l.hours+'hr'+(l.reason?' ・'+l.reason:'')+'</p>'+(l.remark?'<p class="text-xs text-brand mt-0.5">備註：'+l.remark+'</p>':'')+'</div>'}).join("")}catch(e){el.innerHTML='<p class="text-center text-red-400 text-sm py-4">載入失敗</p>'}}
 function getLocation(){return new Promise((res,rej)=>{if(!navigator.geolocation){rej(new Error("no GPS"));return}navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lon:p.coords.longitude}),e=>{const m={1:"拒絕定位",2:"無法定位",3:"逾時"};rej(new Error(m[e.code]||"GPS失敗"))},{enableHighAccuracy:true,timeout:15000,maximumAge:0})})}
 async function postToGAS(p){const r=await fetch(GAS_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(p)});return await r.json()}
 function showModal(i,t,m,d){document.getElementById("modal-icon").textContent=i;document.getElementById("modal-title").textContent=t;document.getElementById("modal-message").textContent=m;document.getElementById("modal-detail").textContent=d||"";document.getElementById("modal").classList.remove("hidden")}
@@ -107,6 +82,166 @@ function closeModal(){document.getElementById("modal").classList.add("hidden")}
 let _adminTeacherCache=null;
 async function checkAdminAndSetup(){try{const r=await postToGAS({uid:userId,action:"checkAdmin"});if(r&&r.ok&&r.isAdmin){document.getElementById("admin-section").classList.remove("hidden")}}catch(e){console.warn("checkAdmin failed",e)}}
 function closeAdminModal(){document.getElementById("admin-modal").classList.add("hidden");document.getElementById("admin-modal-body").innerHTML=""}
+
+/* ============================================================
+   v7.7 銷假 / 天災停班（僅園長可見）
+   ============================================================ */
+
+function _adminModalOpen(title){
+  document.getElementById("admin-modal-title").textContent = title;
+  document.getElementById("admin-modal-body").innerHTML =
+    '<p class="text-center text-gray-400 text-sm py-4">載入中...</p>';
+  document.getElementById("admin-modal").classList.remove("hidden");
+}
+function _adminModalBody(){ return document.getElementById("admin-modal-body"); }
+function _closeBtn(){
+  return '<button onclick="closeAdminModal()" class="w-full mt-3 bg-gray-100 text-gray-700 rounded-xl py-2.5 font-medium text-sm">關閉</button>';
+}
+function _cleanDT(s){
+  // 後端可能回傳 Date 字串或 '2026/07/10 08:00' 文字，統一縮成 M/D HH:mm
+  var str = String(s || "");
+  var m = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})[ T](\d{1,2}):(\d{2})/);
+  if (m) return (+m[2]) + "/" + (+m[3]) + " " + m[4].padStart(2,"0") + ":" + m[5];
+  var d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    return (d.getMonth()+1) + "/" + d.getDate() + " " +
+           String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+  }
+  return str;
+}
+
+/* ---------- 銷假 ---------- */
+var _cancelCache = [];
+
+async function openCancelLeaveModal(){
+  _adminModalOpen("銷假");
+  var b = _adminModalBody();
+  try {
+    var r = await postToGAS({ uid:userId, action:"getCancellableLeaves", adminUid:userId });
+    if (!r.ok){ b.innerHTML = '<p class="text-red-500 text-sm">' + escapeHtml(r.error || "載入失敗") + '</p>' + _closeBtn(); return; }
+    _cancelCache = r.leaves || [];
+    if (!_cancelCache.length){
+      b.innerHTML = '<p class="text-center text-gray-400 text-sm py-4">目前沒有可銷的假</p>' + _closeBtn();
+      return;
+    }
+    var html = '<p class="text-xs text-gray-500 mb-2">共 ' + _cancelCache.length +
+               ' 筆（待審核 + 已核准）。銷假後特休會自動退回，日曆事件一併刪除。</p>' +
+               '<div class="space-y-2 max-h-80 overflow-y-auto">';
+    _cancelCache.forEach(function(x, i){
+      var badge = x.status === "已核准"
+        ? '<span class="status-badge status-approved">已核准</span>'
+        : '<span class="status-badge status-pending">待審核</span>';
+      html += '<div class="border border-gray-200 rounded-xl p-3">' +
+        '<div class="flex items-center justify-between">' +
+          '<div class="font-bold text-sm">' + escapeHtml(x.name) + ' · ' + escapeHtml(x.leaveType) + '</div>' +
+          badge +
+        '</div>' +
+        '<div class="text-xs text-gray-500 mt-1">' + _cleanDT(x.start) + ' ~ ' + _cleanDT(x.end) +
+          '　<strong>' + x.days + '</strong> 天</div>' +
+        (x.reason ? '<div class="text-xs text-gray-400 mt-0.5">事由：' + escapeHtml(x.reason) + '</div>' : '') +
+        '<button onclick="_doCancel(' + i + ')" class="w-full mt-2 bg-[#B84A2F] text-white rounded-lg py-2 text-xs font-bold active:scale-95 transition">銷這一筆</button>' +
+      '</div>';
+    });
+    html += '</div>' + _closeBtn();
+    b.innerHTML = html;
+  } catch(e){
+    b.innerHTML = '<p class="text-red-500 text-sm">載入失敗：' + escapeHtml(e.message) + '</p>' + _closeBtn();
+  }
+}
+
+async function _doCancel(i){
+  var x = _cancelCache[i];
+  if (!x) return;
+  var reason = prompt("銷假原因（必填）\n\n" + x.name + " · " + x.leaveType + "\n" +
+                      _cleanDT(x.start) + " ~ " + _cleanDT(x.end) + "（" + x.days + " 天）",
+                      "老師當日照常到班");
+  if (reason === null) return;
+  reason = reason.trim();
+  if (!reason){ alert("請填寫銷假原因"); return; }
+  if (!confirm("確定要銷掉這筆假嗎？\n\n" + x.name + " · " + x.leaveType +
+               (x.leaveType === "特休" ? "\n將退回特休 " + x.days + " 天" : "") +
+               "\n\n此動作會保留紀錄並標為「已銷假」。")) return;
+
+  var b = _adminModalBody();
+  b.innerHTML = '<p class="text-center text-gray-400 text-sm py-4">處理中...</p>';
+  try {
+    var r = await postToGAS({ uid:userId, action:"cancelLeave", adminUid:userId, row:x.row, reason:reason });
+    if (r.ok){
+      b.innerHTML = '<div class="text-center py-6"><div class="text-4xl mb-2">✅</div>' +
+        '<p class="font-bold">' + escapeHtml(r.message) + '</p></div>' +
+        '<button onclick="openCancelLeaveModal()" class="w-full bg-[#B84A2F] text-white rounded-xl py-2.5 font-medium text-sm">繼續銷其他筆</button>' +
+        _closeBtn();
+      refreshQuota();
+      refreshPendingBadge();
+    } else {
+      b.innerHTML = '<div class="text-center py-4"><div class="text-4xl mb-2">🚫</div>' +
+        '<p class="text-sm text-red-600 leading-relaxed">' + escapeHtml(r.error || "銷假失敗") + '</p></div>' +
+        '<button onclick="openCancelLeaveModal()" class="w-full bg-gray-100 text-gray-700 rounded-xl py-2.5 font-medium text-sm">返回清單</button>';
+    }
+  } catch(e){
+    b.innerHTML = '<p class="text-red-500 text-sm">連線失敗：' + escapeHtml(e.message) + '</p>' + _closeBtn();
+  }
+}
+
+/* ---------- 天災停班 ---------- */
+function openTyphoonModal(){
+  _adminModalOpen("天災停班設定");
+  var today = new Date();
+  var t = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+  _adminModalBody().innerHTML =
+    '<div class="space-y-3">' +
+      '<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 leading-relaxed">' +
+        '設定後，當天<strong>單日</strong>的請假會全部銷假、特休退回。<br>' +
+        '跨日的假不會自動處理，會列出來請您手動調整。' +
+      '</div>' +
+      '<div><label class="block text-xs font-bold text-gray-600 mb-1.5">停班日期</label>' +
+        '<input type="date" id="typhoon-date" value="' + t + '" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-[#B84A2F] focus:outline-none text-sm"></div>' +
+      '<div><label class="block text-xs font-bold text-gray-600 mb-1.5">說明</label>' +
+        '<input type="text" id="typhoon-note" placeholder="例如：丹娜絲颱風，新竹縣停班停課" value="天然災害停止上班" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-[#B84A2F] focus:outline-none text-sm"></div>' +
+      '<button onclick="_doTyphoon()" class="w-full bg-gradient-to-r from-slate-600 to-sky-600 text-white rounded-xl py-3 font-bold text-sm active:scale-95 transition">設定為天災停班日</button>' +
+    '</div>' + _closeBtn();
+}
+
+async function _doTyphoon(){
+  var date = document.getElementById("typhoon-date").value;
+  var note = document.getElementById("typhoon-note").value.trim();
+  if (!date){ alert("請選擇停班日期"); return; }
+  if (!confirm("確定把 " + date + " 設為天災停班日嗎？\n\n當天所有單日假將被銷假，特休自動退回。")) return;
+
+  var b = _adminModalBody();
+  b.innerHTML = '<p class="text-center text-gray-400 text-sm py-4">處理中...</p>';
+  try {
+    var r = await postToGAS({ uid:userId, action:"typhoonDay", adminUid:userId, date:date, note:note });
+    if (!r.ok){
+      b.innerHTML = '<p class="text-red-500 text-sm">' + escapeHtml(r.error || "設定失敗") + '</p>' + _closeBtn();
+      return;
+    }
+    var html = '<div class="text-center py-4"><div class="text-4xl mb-2">🌀</div>' +
+               '<p class="font-bold text-sm">' + escapeHtml(r.message) + '</p></div>';
+
+    if (r.details && r.details.length){
+      html += '<div class="mt-2"><div class="text-xs font-bold text-gray-600 mb-1">已銷假 ' + r.details.length + ' 筆</div>' +
+              '<div class="bg-green-50 border border-green-200 rounded-xl p-2 text-xs text-green-800 space-y-0.5 max-h-32 overflow-y-auto">' +
+              r.details.map(function(d){ return '<div>· ' + escapeHtml(d) + '</div>'; }).join('') + '</div></div>';
+    }
+    if (r.needsManual && r.needsManual.length){
+      html += '<div class="mt-2"><div class="text-xs font-bold text-amber-700 mb-1">⚠️ 需手動處理 ' + r.needsManual.length + ' 筆</div>' +
+              '<div class="bg-amber-50 border border-amber-200 rounded-xl p-2 text-xs text-amber-800 space-y-0.5 max-h-32 overflow-y-auto">' +
+              r.needsManual.map(function(d){ return '<div>· ' + escapeHtml(d) + '</div>'; }).join('') + '</div></div>';
+    }
+    if (r.skipped && r.skipped.length){
+      html += '<div class="mt-2"><div class="text-xs font-bold text-gray-500 mb-1">略過 ' + r.skipped.length + ' 筆</div>' +
+              '<div class="bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs text-gray-600 space-y-0.5 max-h-32 overflow-y-auto">' +
+              r.skipped.map(function(d){ return '<div>· ' + escapeHtml(d) + '</div>'; }).join('') + '</div></div>';
+    }
+    b.innerHTML = html + _closeBtn();
+    refreshQuota();
+    refreshPendingBadge();
+  } catch(e){
+    b.innerHTML = '<p class="text-red-500 text-sm">連線失敗：' + escapeHtml(e.message) + '</p>' + _closeBtn();
+  }
+}
+
 // ===== v7.5 出勤查詢（管理員） =====
 function _attPad(n){return String(n).padStart(2,"0")}
 function _attISO(d){return d.getFullYear()+"-"+_attPad(d.getMonth()+1)+"-"+_attPad(d.getDate())}
