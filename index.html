@@ -97,6 +97,20 @@ function _adminModalBody(){ return document.getElementById("admin-modal-body"); 
 function _closeBtn(){
   return '<button onclick="closeAdminModal()" class="w-full mt-3 bg-gray-100 text-gray-700 rounded-xl py-2.5 font-medium text-sm">關閉</button>';
 }
+function _dtKey(s){
+  // 相容三種格式：'2026/07/10 08:00'、'2026-07-10 08:00'、Date 物件字串
+  var str = String(s || "").trim();
+  var m = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3], +(m[4]||0), +(m[5]||0)).getTime();
+  var d = new Date(str);
+  return isNaN(d.getTime()) ? 0 : d.getTime();
+}
+// 依指定欄位由新到舊排序（回傳同一個陣列）
+function _sortDesc(arr, field){
+  if (!Array.isArray(arr)) return arr;
+  return arr.sort(function(a,b){ return _dtKey(b[field]) - _dtKey(a[field]); });
+}
+
 function _cleanDT(s){
   // 後端可能回傳 Date 字串或 '2026/07/10 08:00' 文字，統一縮成 M/D HH:mm
   var str = String(s || "");
@@ -119,7 +133,7 @@ async function openCancelLeaveModal(){
   try {
     var r = await postToGAS({ uid:userId, action:"getCancellableLeaves", adminUid:userId });
     if (!r.ok){ b.innerHTML = '<p class="text-red-500 text-sm">' + escapeHtml(r.error || "載入失敗") + '</p>' + _closeBtn(); return; }
-    _cancelCache = r.leaves || [];
+    _cancelCache = _sortDesc(r.leaves || [], "start");
     if (!_cancelCache.length){
       b.innerHTML = '<p class="text-center text-gray-400 text-sm py-4">目前沒有可銷的假</p>' + _closeBtn();
       return;
@@ -365,6 +379,7 @@ async function openTeacherLeaveDetail(teacherUid, teacherName) {
 }
 
 function renderTeacherLeaveDetail(leaves, teacherName) {
+  leaves = _sortDesc(leaves || [], "start");
   if (!leaves || !leaves.length) {
     return '<p class="text-gray-500 text-sm text-center py-4">無請假紀錄</p>'
       + '<button onclick="closeAdminModal()" class="w-full mt-3 bg-gray-100 text-gray-700 rounded-xl py-2.5 font-medium text-sm">← 返回老師總覽</button>';
@@ -374,10 +389,10 @@ function renderTeacherLeaveDetail(leaves, teacherName) {
   
   leaves.forEach(function(leave) {
     var statusBg = {
-      '待核准': 'bg-yellow-50 text-yellow-800 border-yellow-200',
+      '待審核': 'bg-yellow-50 text-yellow-800 border-yellow-200',
       '已核准': 'bg-green-50 text-green-800 border-green-200',
-      '已取消': 'bg-gray-50 text-gray-600 border-gray-200',
-      '已駁回': 'bg-red-50 text-red-800 border-red-200'
+      '拒絕':   'bg-red-50 text-red-800 border-red-200',
+      '已銷假': 'bg-orange-50 text-[#B84A2F] border-orange-200'
     }[leave.status] || 'bg-gray-50 text-gray-700 border-gray-200';
     
     var daysText = '';
@@ -491,6 +506,7 @@ async function openPendingLeaveModal(){
 }
 
 function renderPendingLeaves(list){
+  list = _sortDesc(list || [], "start");
   const body = document.getElementById("admin-modal-body");
   if (!list.length) {
     body.innerHTML = '<div class="text-center py-10"><div class="text-4xl mb-2">🎉</div><div class="text-gray-500">目前沒有待核准的請假</div></div>';
