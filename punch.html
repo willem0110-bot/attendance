@@ -212,13 +212,24 @@ function setModal(icon, title, msg, sub, closable){
   document.getElementById("m-close").classList.toggle("hidden", !closable);
 }
 
-async function doPunch(action){
+async function doPunch(action, confirmDuplicate){
   markActivity();
   setModal("⏳", "定位中…", "", "", false); openModal();
   try{
     const g = await ensureGPS();
     setModal("⏳", "傳送中…", "", "", false);
-    const r = await postToGAS({ uid:userId, action, lat:g.lat, lon:g.lon });
+    const payload = { uid:userId, action, lat:g.lat, lon:g.lon };
+    if(confirmDuplicate) payload.confirmDuplicate = true;
+    const r = await postToGAS(payload);
+    /* v8.9 短時間重複打卡確認 */
+    if(r && r.status === "needConfirm"){
+      closeModal();
+      setTimeout(()=>{
+        markActivity();
+        if(confirm("⚠️ 重複打卡確認\n\n" + r.message)){ doPunch(action, true); }
+      }, 120);
+      return;
+    }
     if(r && r.status === "ok"){
       const sub = (r.time || "") + (r.distance != null ? "  ·  距離 " + Math.round(r.distance) + " 公尺" : "");
       setModal("✅", action + " 打卡成功", (r.message || (userName + " 老師")), sub, true);
