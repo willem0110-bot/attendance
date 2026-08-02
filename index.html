@@ -89,7 +89,7 @@ function closeModal(){document.getElementById("modal").classList.add("hidden")}
 // ============================================================
 let _adminTeacherCache=null;
 async function checkAdminAndSetup(){try{const r=await postToGAS({uid:userId,action:"checkAdmin"});if(r&&r.ok&&r.isAdmin){document.getElementById("admin-section").classList.remove("hidden")}}catch(e){console.warn("checkAdmin failed",e)}}
-function closeAdminModal(){document.getElementById("admin-modal").classList.add("hidden");document.getElementById("admin-modal-body").innerHTML=""}
+function closeAdminModal(){document.getElementById("admin-modal").classList.add("hidden");document.getElementById("admin-modal-body").innerHTML="";try{_attSetWide(false)}catch(e){}}
 
 /* ============================================================
    v7.7 銷假 / 天災停班（僅園長可見）
@@ -267,9 +267,113 @@ async function _doTyphoon(){
 // ===== v7.5 出勤查詢（管理員） =====
 function _attPad(n){return String(n).padStart(2,"0")}
 function _attISO(d){return d.getFullYear()+"-"+_attPad(d.getMonth()+1)+"-"+_attPad(d.getDate())}
-function attQuickRange(t){const now=new Date(),dow=(now.getDay()+6)%7;let s,e;if(t===0){s=new Date(now);s.setDate(now.getDate()-dow-7);e=new Date(s);e.setDate(s.getDate()+6)}else if(t===1){s=new Date(now);s.setDate(now.getDate()-dow);e=new Date(now)}else{s=new Date(now.getFullYear(),now.getMonth(),1);e=new Date(now)}document.getElementById("att-start").value=_attISO(s);document.getElementById("att-end").value=_attISO(e)}
-function openAttReportModal(){const m=document.getElementById("admin-modal"),b=document.getElementById("admin-modal-body");document.getElementById("admin-modal-title").textContent="📊 出勤查詢";b.innerHTML='<div class="space-y-3"><div class="flex gap-2"><div class="flex-1"><label class="text-xs font-medium text-gray-600 block mb-1">起始日</label><input id="att-start" type="date" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm"></div><div class="flex-1"><label class="text-xs font-medium text-gray-600 block mb-1">結束日</label><input id="att-end" type="date" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm"></div></div><div class="flex gap-2"><button onclick="attQuickRange(0)" class="flex-1 bg-gray-100 text-gray-600 rounded-lg py-1.5 text-xs active:scale-95 transition">上週</button><button onclick="attQuickRange(1)" class="flex-1 bg-gray-100 text-gray-600 rounded-lg py-1.5 text-xs active:scale-95 transition">本週</button><button onclick="attQuickRange(2)" class="flex-1 bg-gray-100 text-gray-600 rounded-lg py-1.5 text-xs active:scale-95 transition">本月</button></div><button onclick="runAttReport()" id="att-run-btn" class="w-full bg-indigo-600 text-white rounded-xl py-2.5 font-medium text-sm active:scale-95 transition">🔍 查詢</button><div id="att-result"></div><button onclick="closeAdminModal()" class="w-full bg-gray-100 text-gray-700 rounded-xl py-2.5 font-medium text-sm">關閉</button></div>';attQuickRange(2);m.classList.remove("hidden")}
-async function runAttReport(){const s=document.getElementById("att-start").value,e=document.getElementById("att-end").value;if(!s||!e){alert("請選擇起訖日期");return}const res=document.getElementById("att-result"),btn=document.getElementById("att-run-btn");btn.disabled=true;btn.innerHTML='<span class="spinner"></span> 查詢中...';res.innerHTML="";try{const r=await postToGAS({uid:userId,action:"getAttendanceReport",adminUid:userId,startDate:s,endDate:e});btn.disabled=false;btn.textContent="🔍 查詢";if(!r.ok){res.innerHTML='<p class="text-red-500 text-sm">'+(r.message||"查詢失敗")+"</p>";return}if(!r.teachers||!r.teachers.length){res.innerHTML='<p class="text-center text-gray-400 text-sm py-4">查無老師資料</p>';return}let html=r.capped?'<p class="text-[11px] text-amber-600 mb-2">⚠️ 區間最多顯示 62 天，已截斷</p>':"";html+='<p class="text-[11px] text-gray-400 mb-2">點老師名字可展開每日明細｜共 '+r.days.length+" 天</p>";html+=r.teachers.map(function(t){const rows=r.days.map(function(d){const rec=t.byDay[d.date];let cell;if(!rec)cell='<span class="text-gray-300">—</span>';else{const parts=[];if(rec.p.length)parts.push('<span class="text-gray-800">'+rec.p.join("、")+"</span>");if(rec.l.length)parts.push('<span class="text-red-600">🏖 '+rec.l.join("<br>🏖 ")+"</span>");cell=parts.join("<br>")}return '<div class="flex gap-2 py-1 border-b border-gray-100"><div class="w-[72px] shrink-0 text-gray-500">'+d.label+'</div><div class="flex-1 break-all">'+cell+"</div></div>"}).join("");return '<details class="bg-gray-50 rounded-xl mb-2 overflow-hidden border border-gray-100"><summary class="px-3 py-2.5 cursor-pointer text-sm"><span class="font-bold text-gray-800">'+t.name+'</span><span class="float-right text-[11px] text-gray-500">出勤 '+t.punchDays+" 天"+(t.leaveCount?'・<span class="text-red-500">請假 '+t.leaveCount+" 筆</span>":"")+"</span></summary>"+'<div class="px-3 pb-2 text-xs max-h-72 overflow-y-auto">'+rows+"</div></details>"}).join("");res.innerHTML=html}catch(err){btn.disabled=false;btn.textContent="🔍 查詢";res.innerHTML='<p class="text-red-500 text-sm">網路錯誤</p>'}}
+function attQuickRange(t){const now=new Date(),dow=(now.getDay()+6)%7;let s,e;if(t===0){s=new Date(now);s.setDate(now.getDate()-dow-7);e=new Date(s);e.setDate(s.getDate()+6)}else if(t===1){s=new Date(now);s.setDate(now.getDate()-dow);e=new Date(now)}else if(t===3){s=new Date(now.getFullYear(),now.getMonth()-1,1);e=new Date(now.getFullYear(),now.getMonth(),0)}else{s=new Date(now.getFullYear(),now.getMonth(),1);e=new Date(now)}document.getElementById("att-start").value=_attISO(s);document.getElementById("att-end").value=_attISO(e)}
+// ===== v9.0 出勤查詢：員工刷卡記錄表版面（矩陣式）=====
+var XG_LEAVE_ABBR={"特休":"特休","普通病假":"病假","事假":"事假","生理假":"生理","婚假":"婚假","喪假":"喪假","公假":"公假","產假":"產假","陪產檢及陪產假":"陪產","產檢假":"產檢","育嬰留職停薪":"育嬰","家庭照顧假":"家照"};
+function _attInjectStyle(){
+  if(document.getElementById("xg-att-style"))return;
+  var s=document.createElement("style");s.id="xg-att-style";
+  s.textContent=".xg-att-wide{max-width:96vw!important;width:96vw!important;padding:16px!important}"
+  +".attm-wrap{overflow:auto;max-height:64vh;border:1px solid #e2e8f0;border-radius:12px;background:#fff;-webkit-overflow-scrolling:touch}"
+  +".attm{border-collapse:separate;border-spacing:0;font-size:10px;line-height:1.35}"
+  +".attm th,.attm td{border-right:1px solid #eef1f5;border-bottom:1px solid #eef1f5;padding:3px 2px;text-align:center;vertical-align:top;background:#fff}"
+  +".attm thead th{position:sticky;top:0;z-index:20;background:#f1f5f9;font-weight:600;color:#475569;white-space:nowrap}"
+  +".attm .nm{position:sticky;left:0;z-index:10;background:#fff;text-align:left;padding:4px 6px;min-width:84px;max-width:84px;border-right:1px solid #cbd5e1}"
+  +".attm thead .nm{z-index:30;background:#f1f5f9}"
+  +".attm thead th.we{background:#e2e8f0;color:#64748b}"
+  +".attm td.we{background:#fafbfc}"
+  +".attm .tm{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#1f2937;display:block;white-space:nowrap}"
+  +".attm .lv{display:inline-block;margin-top:1px;padding:0 3px;border-radius:4px;font-size:9px;white-space:nowrap;cursor:pointer}"
+  +".attm .lv-ok{background:#fee2e2;color:#b91c1c}"
+  +".attm .lv-wait{background:#ffedd5;color:#c2410c}"
+  +".attm .col{min-width:46px;max-width:46px}"
+  +".attm tbody tr:nth-child(even) .nm{background:#fcfcfd}";
+  document.head.appendChild(s);
+}
+function _attSetWide(on){
+  var c=document.querySelector("#admin-modal .modal-content");
+  if(!c)return;
+  if(on){c.classList.remove("max-w-sm");c.classList.add("xg-att-wide")}
+  else{c.classList.remove("xg-att-wide");c.classList.add("max-w-sm")}
+}
+function _attEsc(s){return String(s||"").replace(/\\/g,"").replace(/'/g,"\u2019").replace(/"/g,"\u201d").replace(/\r?\n/g,"\\n")}
+function _attCellHtml(rec,who,dayLabel){
+  if(!rec)return '<span style="color:#dbe0e6">\u00b7</span>';
+  var out="",i,j,k;
+  if(rec.p&&rec.p.length){
+    var ts=[];
+    for(i=0;i<rec.p.length;i++){
+      var m=String(rec.p[i]).match(/(\d{1,2}:\d{2})/);
+      if(m){var v=(m[1].length===4?"0"+m[1]:m[1]);if(ts.indexOf(v)<0)ts.push(v)}
+    }
+    ts.sort();
+    for(j=0;j<ts.length;j++)out+='<span class="tm">'+ts[j]+'</span>';
+  }
+  if(rec.l&&rec.l.length){
+    for(k=0;k<rec.l.length;k++){
+      var raw=String(rec.l[k]);
+      var wait=raw.indexOf("\u5f85\u5be9\u6838")>=0;
+      var type=raw.split(" ")[0];
+      var ab=XG_LEAVE_ABBR[type]||type.substring(0,2);
+      var msg=_attEsc(who+"\uff5c"+dayLabel+"\n"+raw);
+      out+='<span class="lv '+(wait?"lv-wait":"lv-ok")+'" onclick="alert(\''+msg+'\')">'+ab+(wait?"?":"")+'</span>';
+    }
+  }
+  return out||'<span style="color:#dbe0e6">\u00b7</span>';
+}
+function _attRenderMatrix(r){
+  var html="",i,h,t,c;
+  if(r.capped)html+='<p class="text-[11px] text-amber-600 mb-1">\u26a0\ufe0f \u5340\u9593\u6700\u591a 62 \u5929\uff0c\u5df2\u622a\u65b7</p>';
+  var dnum=[],dw=[];
+  for(i=0;i<r.days.length;i++){
+    dnum.push(parseInt(String(r.days[i].date).substr(8,2),10));
+    var wm=String(r.days[i].label).match(/[\uff08(](.)[\uff09)]/);
+    dw.push(wm?wm[1]:"");
+  }
+  var head='<tr><th class="nm">\u59d3\u540d</th>';
+  for(h=0;h<dnum.length;h++){
+    head+='<th class="col'+((dw[h]==="\u516d"||dw[h]==="\u65e5")?" we":"")+'">'+dnum[h]+'<br>'+dw[h]+'</th>';
+  }
+  head+='</tr>';
+  var body="";
+  for(t=0;t<r.teachers.length;t++){
+    var tc=r.teachers[t];
+    body+='<tr><td class="nm"><span style="font-weight:700;color:#111827;font-size:11px">'+tc.name+'</span><br><span style="color:#9ca3af;font-size:9px">\u51fa\u52e4 '+tc.punchDays+' \u5929'+(tc.leaveCount?' \u30fb\u5047 '+tc.leaveCount:'')+'</span></td>';
+    for(c=0;c<r.days.length;c++){
+      body+='<td class="col'+((dw[c]==="\u516d"||dw[c]==="\u65e5")?" we":"")+'">'+_attCellHtml(tc.byDay[r.days[c].date],tc.name,r.days[c].label)+'</td>';
+    }
+    body+='</tr>';
+  }
+  html+='<div class="attm-wrap"><table class="attm"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
+  html+='<p style="font-size:10px;color:#94a3b8;margin-top:6px;line-height:1.7">\u5de6\u53f3\u6ed1\u52d5\u770b\u5176\u9918\u65e5\u671f\uff0c\u59d3\u540d\u6b04\u56fa\u5b9a\u3002<span style="background:#fee2e2;color:#b91c1c;padding:0 4px;border-radius:4px">\u7d05</span> \u5df2\u6838\u51c6\u5047\u5225\u3000<span style="background:#ffedd5;color:#c2410c;padding:0 4px;border-radius:4px">\u6a58?</span> \u5f85\u5be9\u6838\u3000\u704f\u5e95\u70ba\u9031\u672b\u3002\u9ede\u5047\u5225\u53ef\u770b\u5b8c\u6574\u6642\u6bb5\u3002</p>';
+  return html;
+}
+function openAttReportModal(){
+  _attInjectStyle();
+  var m=document.getElementById("admin-modal"),b=document.getElementById("admin-modal-body");
+  document.getElementById("admin-modal-title").textContent="\ud83d\udcca \u51fa\u52e4\u67e5\u8a62";
+  b.innerHTML='<div class="space-y-3"><div class="flex gap-2"><div class="flex-1"><label class="text-xs font-medium text-gray-600 block mb-1">\u8d77\u59cb\u65e5</label><input id="att-start" type="date" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm"></div><div class="flex-1"><label class="text-xs font-medium text-gray-600 block mb-1">\u7d50\u675f\u65e5</label><input id="att-end" type="date" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm"></div></div><div class="flex gap-2"><button onclick="attQuickRange(0)" class="flex-1 bg-gray-100 text-gray-600 rounded-lg py-1.5 text-xs active:scale-95 transition">\u4e0a\u9031</button><button onclick="attQuickRange(1)" class="flex-1 bg-gray-100 text-gray-600 rounded-lg py-1.5 text-xs active:scale-95 transition">\u672c\u9031</button><button onclick="attQuickRange(2)" class="flex-1 bg-gray-100 text-gray-600 rounded-lg py-1.5 text-xs active:scale-95 transition">\u672c\u6708</button><button onclick="attQuickRange(3)" class="flex-1 bg-gray-100 text-gray-600 rounded-lg py-1.5 text-xs active:scale-95 transition">\u4e0a\u6708</button></div><button onclick="runAttReport()" id="att-run-btn" class="w-full bg-indigo-600 text-white rounded-xl py-2.5 font-medium text-sm active:scale-95 transition">\ud83d\udd0d \u67e5\u8a62</button><div id="att-result"></div><button onclick="closeAdminModal()" class="w-full bg-gray-100 text-gray-700 rounded-xl py-2.5 font-medium text-sm">\u95dc\u9589</button></div>';
+  attQuickRange(2);
+  _attSetWide(true);
+  m.classList.remove("hidden");
+}
+async function runAttReport(){
+  var s=document.getElementById("att-start").value,e=document.getElementById("att-end").value;
+  if(!s||!e){alert("\u8acb\u9078\u64c7\u8d77\u8a16\u65e5\u671f");return}
+  var res=document.getElementById("att-result"),btn=document.getElementById("att-run-btn");
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> \u67e5\u8a62\u4e2d...';res.innerHTML="";
+  try{
+    var r=await postToGAS({uid:userId,action:"getAttendanceReport",adminUid:userId,startDate:s,endDate:e});
+    btn.disabled=false;btn.textContent="\ud83d\udd0d \u67e5\u8a62";
+    if(!r.ok){res.innerHTML='<p class="text-red-500 text-sm">'+(r.message||"\u67e5\u8a62\u5931\u6557")+'</p>';return}
+    if(!r.teachers||!r.teachers.length){res.innerHTML='<p class="text-center text-gray-400 text-sm py-4">\u67e5\u7121\u8001\u5e2b\u8cc7\u6599</p>';return}
+    var title='<div style="display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 4px"><span style="font-weight:700;color:#1f2937;font-size:13px">\u54e1\u5de5\u5237\u5361\u8a18\u9304\u8868</span><span style="font-size:10px;color:#94a3b8">'+String(r.days[0].date)+' \uff5e '+String(r.days[r.days.length-1].date)+'\u3000\u5171 '+r.days.length+' \u5929\u3001'+r.teachers.length+' \u4eba</span></div>';
+    res.innerHTML=title+_attRenderMatrix(r);
+  }catch(err){
+    btn.disabled=false;btn.textContent="\ud83d\udd0d \u67e5\u8a62";
+    res.innerHTML='<p class="text-red-500 text-sm">\u7db2\u8def\u932f\u8aa4\uff1a'+(err&&err.message?err.message:err)+'</p>';
+  }
+}
 async function openAdjustModal(){const m=document.getElementById("admin-modal"),b=document.getElementById("admin-modal-body");document.getElementById("admin-modal-title").textContent="調整特休天數";b.innerHTML='<p class="text-center text-gray-400 text-sm py-4">載入老師清單中...</p>';m.classList.remove("hidden");try{if(!_adminTeacherCache){const r=await postToGAS({uid:userId,action:"getTeacherListForAdmin",adminUid:userId});if(!r.ok){b.innerHTML='<p class="text-red-500 text-sm">'+(r.error||"載入失敗")+'</p>';return}_adminTeacherCache=r.teachers}const opts=_adminTeacherCache.map(t=>'<option value="'+t.uid+'">'+t.name+'</option>').join("");b.innerHTML='<div class="space-y-3"><div><label class="text-xs font-medium text-gray-600 block mb-1">老師</label><select id="adj-teacher" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm">'+opts+'</select></div><div><label class="text-xs font-medium text-gray-600 block mb-1">調整天數 (正數加 / 負數扣)</label><input id="adj-days" type="number" step="0.5" placeholder="例：1 或 -0.5" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm"></div><div><label class="text-xs font-medium text-gray-600 block mb-1">調整原因</label><input id="adj-reason" type="text" placeholder="例：跨年度遞延、年度結清、特殊獎勵" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm"></div><div class="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-[11px] text-amber-800">⚠️ 此操作會立即生效並寫入紀錄表，無法復原（但可再次反向調整）</div><div class="flex gap-2 pt-1"><button onclick="closeAdminModal()" class="flex-1 bg-gray-100 text-gray-700 rounded-xl py-2.5 font-medium text-sm">取消</button><button onclick="submitAdjustment()" id="adj-submit-btn" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-medium text-sm">確定調整</button></div></div>'}catch(e){b.innerHTML='<p class="text-red-500 text-sm">網路錯誤</p>'}}
 async function submitAdjustment(){const teacherUid=document.getElementById("adj-teacher").value,days=parseFloat(document.getElementById("adj-days").value),reason=document.getElementById("adj-reason").value.trim();if(!teacherUid){alert("請選擇老師");return}if(isNaN(days)||days===0){alert("請輸入有效的調整天數（非 0）");return}if(!reason){alert("請填寫調整原因");return}const btn=document.getElementById("adj-submit-btn");btn.disabled=true;btn.innerHTML='<span class="spinner"></span> 送出中...';try{const r=await postToGAS({uid:userId,action:"adjustLeaveQuota",adminUid:userId,teacherUid:teacherUid,days:days,reason:reason});if(r.ok){closeAdminModal();showModal("✅","調整成功",r.message,"");refreshQuota()}else{btn.disabled=false;btn.textContent="確定調整";alert(r.error||"調整失敗")}}catch(e){btn.disabled=false;btn.textContent="確定調整";alert("網路錯誤")}}
 function fmtBirthday(bd){if(!bd)return"";const m=String(bd).match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);if(m)return Number(m[2])+"/"+Number(m[3]);const m2=String(bd).match(/^(\d{1,2})[\/\-](\d{1,2})$/);if(m2)return Number(m2[1])+"/"+Number(m2[2]);return String(bd)}
