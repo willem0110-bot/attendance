@@ -44,8 +44,9 @@
   <div id="screen-notice" class="card p-8 text-center hidden rise">
     <div id="notice-icon" class="text-5xl mb-3">📌</div>
     <h2 id="notice-title" class="serif text-xl font-bold mb-2"></h2>
-    <p id="notice-body" class="text-gray-500 text-sm leading-relaxed"></p>
+    <p id="notice-body" class="text-gray-500 text-sm leading-relaxed" style="white-space:pre-line"></p>
     <button id="notice-retry" onclick="init()" class="hidden mt-6 w-full py-3 rounded-2xl bg-[#B84A2F] text-white font-bold act">重新感應打卡</button>
+    <button id="notice-relogin" onclick="fullLogout()" class="hidden mt-3 w-full py-3 rounded-2xl bg-gray-100 text-gray-700 font-bold act">清除登入資料，重新登入</button>
   </div>
 
   <!-- 打卡主畫面 -->
@@ -110,18 +111,30 @@ function show(id){
     document.getElementById(s).classList.toggle("hidden", s!==id);
   });
 }
-function notice(icon, title, body, retry){
+function notice(icon, title, body, retry, relogin){
   document.getElementById("notice-icon").textContent = icon;
   document.getElementById("notice-title").textContent = title;
   document.getElementById("notice-body").textContent = body;
   document.getElementById("notice-retry").classList.toggle("hidden", !retry);
+  var rl = document.getElementById("notice-relogin");
+  if(rl) rl.classList.toggle("hidden", !relogin);
   show("screen-notice");
 }
 
 /* ===== 後端通訊（與主系統相同）===== */
 async function postToGAS(p){
   const r = await fetch(GAS_URL, { method:"POST", headers:{ "Content-Type":"text/plain" }, body: JSON.stringify(p) });
-  return await r.json();
+  const txt = await r.text();
+  try{ return JSON.parse(txt); }
+  catch(e){
+    let hint = "\u5f8c\u7aef\u56de\u61c9\u683c\u5f0f\u7570\u5e38";
+    if(/\u6388\u6b0a|Authorization required/i.test(txt)) hint = "\u5f8c\u7aef\u9700\u8981\u91cd\u65b0\u6388\u6b0a\uff0c\u8acb\u8f49\u544a\u5712\u9577";
+    else if(/Page Not Found|<html|<!DOCTYPE/i.test(txt)) hint = "\u7cfb\u7d71\u5fd9\u788c\u4e2d\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66";
+    const err = new Error(hint);
+    err.xgStep = "backend";
+    err.xgTransient = true;
+    throw err;
+  }
 }
 
 /* ===== 定位 ===== */
@@ -152,22 +165,52 @@ async function init(){
   document.getElementById("loading-text").textContent = "正在確認您的 LINE 身分…";
   show("screen-loading");
   idleCleared = false; lastActivity = Date.now();
+  var step = "start";
   try{
+    step = "liff.init";
     await liff.init({ liffId: LIFF_ID });
+
+    step = "liff.isLoggedIn";
     if(!liff.isLoggedIn()){ liff.login(); return; }
+
+    step = "liff.getProfile";
     const prof = await liff.getProfile();
     userId = prof.userId;
+    if(!userId) throw new Error("\u53d6\u4e0d\u5230 LINE \u4f7f\u7528\u8005\u8b58\u5225\u78bc");
+
     prefetchGPS(); // 背景先要定位，加快打卡
+
+    step = "backend";
     const r = await postToGAS({ uid:userId, action:"check", lat:0, lon:0 });
     if(r && r.status === "unregistered"){
-      notice("👋", "第一次使用，請先完成綁定",
-        "請先開啟「教師出缺勤系統」完成註冊（部門／角色／到職日），之後就能用這張 QR 快速打卡。", false);
+      notice("\ud83d\udc4b", "\u7b2c\u4e00\u6b21\u4f7f\u7528\uff0c\u8acb\u5148\u5b8c\u6210\u7d81\u5b9a",
+        "\u8acb\u5148\u958b\u555f\u300c\u6559\u5e2b\u51fa\u7f3a\u52e4\u7cfb\u7d71\u300d\u5b8c\u6210\u8a3b\u518a\uff08\u90e8\u9580\uff0f\u89d2\u8272\uff0f\u5230\u8077\u65e5\uff09\uff0c\u4e4b\u5f8c\u5c31\u80fd\u7528\u9019\u5f35 QR \u5feb\u901f\u6253\u5361\u3002", false, false);
       return;
     }
-    userName = (r && r.name) || "老師";
+    userName = (r && r.name) || "\u8001\u5e2b";
     renderPunch();
+
   }catch(e){
-    notice("⚠️", "LINE 驗證失敗", (e && e.message) || "請完全關閉 LINE 後，重新掃描 QR 再試一次。", true);
+    var failedAt = e && e.xgStep ? e.xgStep : step;
+    var raw = (e && e.message) ? String(e.message) : "";
+    var name = (e && e.name) ? String(e.name) : "";
+
+    var title, body, showRelogin = false;
+    if(failedAt === "backend"){
+      title = "\u7121\u6cd5\u9023\u7dda\u5230\u7cfb\u7d71";
+      body = (raw || "\u8acb\u7a0d\u5f8c\u518d\u8a66") + "\n\uff08\u6253\u5361\u5c1a\u672a\u9001\u51fa\uff0c\u53ef\u4ee5\u5b89\u5fc3\u91cd\u8a66\uff09";
+    }else if(failedAt === "liff.getProfile"){
+      title = "\u53d6\u5f97 LINE \u8cc7\u6599\u5931\u6557";
+      body = "\u767b\u5165\u8cc7\u6599\u53ef\u80fd\u5df2\u904e\u671f\u3002\u8acb\u6309\u4e0b\u65b9\u300c\u6e05\u9664\u767b\u5165\u8cc7\u6599\u300d\u91cd\u65b0\u767b\u5165\u3002\n\uff08" + name + "\uff1a" + raw + "\uff09";
+      showRelogin = true;
+    }else{
+      title = "LINE \u9a57\u8b49\u5931\u6557";
+      body = "\u5931\u6557\u6b65\u9a5f\uff1a" + failedAt + "\n" + (name ? name + "\uff1a" : "") + (raw || "\u672a\u77e5\u932f\u8aa4") +
+             "\n\n\u8acb\u5148\u5b8c\u5168\u95dc\u9589 LINE \u518d\u6383\u4e00\u6b21 QR\uff1b\u82e5\u4ecd\u7121\u6548\uff0c\u8acb\u6309\u300c\u6e05\u9664\u767b\u5165\u8cc7\u6599\u300d\u3002";
+      showRelogin = true;
+    }
+    notice("\u26a0\ufe0f", title, body, true, showRelogin);
+    try{ console.error("[punch] failed at", failedAt, e); }catch(_){}
   }
 }
 
@@ -212,33 +255,81 @@ function setModal(icon, title, msg, sub, closable){
   document.getElementById("m-close").classList.toggle("hidden", !closable);
 }
 
+async function verifyAfterFailure(action){
+  setModal("\u23f3", "\u78ba\u8a8d\u6253\u5361\u7d50\u679c\u2026", "\u7cfb\u7d71\u56de\u61c9\u903e\u6642\uff0c\u6b63\u5728\u70ba\u60a8\u67e5\u8b49\uff0c\u8acb\u7a0d\u5019", "", false);
+  for(var i=0;i<3;i++){
+    if(i>0) await new Promise(function(r){ setTimeout(r, 1500*i); });
+    try{
+      var v = await postToGAS({ uid:userId, action:"verifyPunch", action2:action, minutes:10 });
+      if(v && v.ok) return v;
+    }catch(e){ /* 查證本身也可能失敗，繼續重試 */ }
+  }
+  return null;
+}
+
 async function doPunch(action, confirmDuplicate){
   markActivity();
-  setModal("⏳", "定位中…", "", "", false); openModal();
+  var step = "gps";
+  setModal("\u23f3", "\u5b9a\u4f4d\u4e2d\u2026", "", "", false); openModal();
   try{
     const g = await ensureGPS();
-    setModal("⏳", "傳送中…", "", "", false);
+
+    step = "send";
+    setModal("\u23f3", "\u50b3\u9001\u4e2d\u2026", "", "", false);
     const payload = { uid:userId, action, lat:g.lat, lon:g.lon };
     if(confirmDuplicate) payload.confirmDuplicate = true;
     const r = await postToGAS(payload);
+
     /* v8.9 短時間重複打卡確認 */
     if(r && r.status === "needConfirm"){
       closeModal();
       setTimeout(()=>{
         markActivity();
-        if(confirm("⚠️ 重複打卡確認\n\n" + r.message)){ doPunch(action, true); }
+        if(confirm("\u26a0\ufe0f \u91cd\u8907\u6253\u5361\u78ba\u8a8d\n\n" + r.message)){ doPunch(action, true); }
       }, 120);
       return;
     }
+
     if(r && r.status === "ok"){
-      const sub = (r.time || "") + (r.distance != null ? "  ·  距離 " + Math.round(r.distance) + " 公尺" : "");
-      setModal("✅", action + " 打卡成功", (r.message || (userName + " 老師")), sub, true);
+      const sub = (r.time || "") + (r.distance != null ? "  \u00b7  \u8ddd\u96e2 " + Math.round(r.distance) + " \u516c\u5c3a" : "");
+      setModal("\u2705", action + " \u6253\u5361\u6210\u529f", (r.message || (userName + " \u8001\u5e2b")), sub, true);
       setTimeout(()=>{ closeModal(); }, 6000);
-    }else{
-      setModal("🚫", "打卡未完成", (r && r.message) || "請稍後再試一次。", (r && r.distance != null) ? "距離 " + Math.round(r.distance) + " 公尺" : "", true);
+      return;
     }
+
+    /* v9.3 後端拿不到寫入鎖：確定沒寫入，可以安全重試 */
+    if(r && r.reason === "busy"){
+      setModal("\u23f3", "\u7cfb\u7d71\u5fd9\u788c\uff0c\u5c1a\u672a\u9001\u51fa",
+        (r.message || "\u8acb\u7a0d\u5019 10 \u79d2\u518d\u6309\u4e00\u6b21\u3002"), "", true);
+      return;
+    }
+
+    setModal("\ud83d\udeab", "\u6253\u5361\u672a\u5b8c\u6210", (r && r.message) || "\u8acb\u7a0d\u5f8c\u518d\u8a66\u4e00\u6b21\u3002",
+      (r && r.distance != null) ? "\u8ddd\u96e2 " + Math.round(r.distance) + " \u516c\u5c3a" : "", true);
+
   }catch(e){
-    setModal("📍", "定位失敗", (e && e.message) || "請確認已允許定位權限後再試。", "", true);
+    /* 定位階段失敗：確定沒送出 */
+    if(step === "gps"){
+      setModal("\ud83d\udccd", "\u5b9a\u4f4d\u5931\u6557", (e && e.message) || "\u8acb\u78ba\u8a8d\u5df2\u5141\u8a31\u5b9a\u4f4d\u6b0a\u9650\u5f8c\u518d\u8a66\u3002", "", true);
+      return;
+    }
+
+    /* v9.3 已送出但沒收到回應 → 直接查證，不讓老師憑感覺猜 */
+    const v = await verifyAfterFailure(action);
+
+    if(v && v.found){
+      setModal("\u2705", action + " \u5df2\u5b8c\u6210",
+        "\u7cfb\u7d71\u56de\u61c9\u903e\u6642\uff0c\u4f46\u60a8\u7684\u6253\u5361\u5df2\u7d93\u6210\u529f\u8a18\u9304\u3002",
+        "\u6253\u5361\u6642\u9593 " + v.time + "\u3000\u8acb\u52ff\u91cd\u8907\u6253\u5361", true);
+      return;
+    }
+    if(v){
+      setModal("\ud83d\udeab", "\u6253\u5361\u672a\u9001\u51fa",
+        "\u5df2\u70ba\u60a8\u67e5\u8b49\uff1a\u7cfb\u7d71\u6c92\u6709\u6536\u5230\u9019\u7b46\u6253\u5361\u3002\u8acb\u518d\u6309\u4e00\u6b21\u3002", "", true);
+      return;
+    }
+    setModal("\u26a0\ufe0f", "\u7121\u6cd5\u78ba\u8a8d\u7d50\u679c",
+      "\u76ee\u524d\u7121\u6cd5\u9023\u7dda\u67e5\u8b49\u3002\u8acb\u52ff\u91cd\u8907\u6253\u5361\uff0c\u6539\u7528\u300c\u6559\u5e2b\u51fa\u7f3a\u52e4\u7cfb\u7d71\u300d\u67e5\u8a62\u7d00\u9304\uff0c\u6216\u544a\u77e5\u5712\u9577\u3002", "", true);
   }
 }
 
