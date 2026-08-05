@@ -122,36 +122,101 @@ function notice(icon, title, body, retry, relogin){
 }
 
 /* ===== 後端通訊（與主系統相同）===== */
-async function postToGAS(p){
+/* v9.4 唯讀請求自動重試
+   LINE 內建瀏覽器冷啟動時，第一個跨網域請求常會失敗（GAS /exec 會 302 轉址），
+   造成老師必須手動按第二次才成功。check 與 verifyPunch 都是唯讀的，
+   重試不會有副作用；打卡寫入則一次都不重試，避免重複紀錄。 */
+var XG_RETRY_SAFE = ["check", "verifyPunch"];
+
+function _xgSleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+async function _postOnce(p){
   const r = await fetch(GAS_URL, { method:"POST", headers:{ "Content-Type":"text/plain" }, body: JSON.stringify(p) });
   const txt = await r.text();
-  try{ return JSON.parse(txt); }
+  try{ return { ok:true, data: JSON.parse(txt) }; }
   catch(e){
     let hint = "\u5f8c\u7aef\u56de\u61c9\u683c\u5f0f\u7570\u5e38";
     if(/\u6388\u6b0a|Authorization required/i.test(txt)) hint = "\u5f8c\u7aef\u9700\u8981\u91cd\u65b0\u6388\u6b0a\uff0c\u8acb\u8f49\u544a\u5712\u9577";
     else if(/Page Not Found|<html|<!DOCTYPE/i.test(txt)) hint = "\u7cfb\u7d71\u5fd9\u788c\u4e2d\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66";
-    const err = new Error(hint);
-    err.xgStep = "backend";
-    err.xgTransient = true;
-    throw err;
+    return { ok:false, msg:hint };
   }
 }
 
-/* ===== 定位 ===== */
-function getLocation(){
+async function postToGAS(p){
+  const safe = !!(p && p.action && XG_RETRY_SAFE.indexOf(p.action) >= 0);
+  const tries = safe ? 3 : 1;
+  let last = "\u9023\u7dda\u5931\u6557";
+  for(let i = 0; i < tries; i++){
+    if(i > 0) await _xgSleep(700 * i);
+    let res;
+    try{
+      res = await _postOnce(p);
+    }catch(netErr){
+      last = (netErr && netErr.message) ? netErr.message : String(netErr);
+      continue;
+    }
+    if(res.ok) return res.data;
+    last = res.msg;
+  }
+  const err = new Error(last);
+  err.xgStep = "backend";
+  err.xgTransient = true;
+  throw err;
+}
+
+/* ===== 定位（v9.5 兩段式）=====
+   舊版用 enableHighAccuracy:true + maximumAge:0，等於「每次都要全新的衛星定位」。
+   老師在室內收不到衛星訊號，苦等 15 秒後逾時 →「跑很久然後定位失敗」，
+   第二次才成功是因為系統層已經有定位了。
+   改為：
+     第一段 低精度（WiFi／基地台），室內最快，接受 60 秒內的既有定位
+     第二段 精度不足或失敗時，才用高精度重試
+   並確保同一時間只有一個定位請求，避免 prefetch 與 ensure 互相競爭。 */
+
+var XG_GPS_ACC_LIMIT = 120;   // 低精度定位可接受的誤差上限（公尺）；校園允許範圍 200m
+var gpsInflight = null;
+
+function getLocation(opts){
   return new Promise((res, rej)=>{
-    if(!navigator.geolocation){ rej(new Error("此裝置不支援定位")); return; }
+    if(!navigator.geolocation){ rej(new Error("\u6b64\u88dd\u7f6e\u4e0d\u652f\u63f4\u5b9a\u4f4d")); return; }
     navigator.geolocation.getCurrentPosition(
-      p => res({ lat:p.coords.latitude, lon:p.coords.longitude }),
-      e => { const m={1:"定位權限被拒絕",2:"目前無法定位",3:"定位逾時"}; rej(new Error(m[e.code]||"定位失敗")); },
-      { enableHighAccuracy:true, timeout:15000, maximumAge:0 }
+      p => res({ lat:p.coords.latitude, lon:p.coords.longitude, acc:p.coords.accuracy }),
+      e => { const m={1:"\u5b9a\u4f4d\u6b0a\u9650\u88ab\u62d2\u7d55",2:"\u76ee\u524d\u7121\u6cd5\u5b9a\u4f4d",3:"\u5b9a\u4f4d\u903e\u6642"}; rej(new Error(m[e.code]||"\u5b9a\u4f4d\u5931\u6557")); },
+      opts
     );
   });
 }
-async function prefetchGPS(){ try{ const p=await getLocation(); gpsCache={...p, ts:Date.now()}; }catch(e){} }
+
+async function acquireGPS(){
+  /* 第一段：低精度、允許 60 秒內的既有定位。室內通常 1 秒內回應 */
+  try{
+    const fast = await getLocation({ enableHighAccuracy:false, timeout:8000, maximumAge:60000 });
+    if(!fast.acc || fast.acc <= XG_GPS_ACC_LIMIT) return fast;
+  }catch(e){ /* 落到第二段 */ }
+
+  /* 第二段：高精度重試，仍允許 60 秒內的既有定位 */
+  return await getLocation({ enableHighAccuracy:true, timeout:15000, maximumAge:60000 });
+}
+
+/* 同一時間只跑一個定位請求；重複呼叫共用同一個 Promise */
+function requestGPS(){
+  if(gpsInflight) return gpsInflight;
+  gpsInflight = acquireGPS().then(function(p){
+    gpsCache = { lat:p.lat, lon:p.lon, acc:p.acc, ts:Date.now() };
+    gpsInflight = null;
+    return gpsCache;
+  }).catch(function(err){
+    gpsInflight = null;
+    throw err;
+  });
+  return gpsInflight;
+}
+
+async function prefetchGPS(){ try{ await requestGPS(); }catch(e){} }
+
 async function ensureGPS(){
-  if(gpsCache && Date.now()-gpsCache.ts < 90000) return gpsCache;
-  const p = await getLocation(); gpsCache = {...p, ts:Date.now()}; return gpsCache;
+  if(gpsCache && Date.now() - gpsCache.ts < 90000) return gpsCache;
+  return await requestGPS();
 }
 
 /* ===== 初始化 ===== */
@@ -270,7 +335,7 @@ async function verifyAfterFailure(action){
 async function doPunch(action, confirmDuplicate){
   markActivity();
   var step = "gps";
-  setModal("\u23f3", "\u5b9a\u4f4d\u4e2d\u2026", "", "", false); openModal();
+  setModal("\u23f3", "\u5b9a\u4f4d\u4e2d\u2026", "\u9996\u6b21\u5b9a\u4f4d\u53ef\u80fd\u9700\u8981\u5e7e\u79d2", "", false); openModal();
   try{
     const g = await ensureGPS();
 
