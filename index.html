@@ -61,7 +61,7 @@
     <div id="panel-punch" class="space-y-3"><div class="grid grid-cols-2 gap-3"><button onclick="handlePunch('上班')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-clockin/10 flex items-center justify-center text-3xl mb-3">☀️</div><span class="font-bold text-gray-800 text-lg">上班</span><p class="text-xs text-gray-400 mt-1">Clock In</p></button><button onclick="handlePunch('午休外出')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-lunchout/10 flex items-center justify-center text-3xl mb-3">🍱</div><span class="font-bold text-gray-800 text-lg">午休外出</span><p class="text-xs text-gray-400 mt-1">Lunch Out</p></button><button onclick="handlePunch('午休返回')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-lunchin/10 flex items-center justify-center text-3xl mb-3">🔙</div><span class="font-bold text-gray-800 text-lg">午休返回</span><p class="text-xs text-gray-400 mt-1">Lunch In</p></button><button onclick="handlePunch('下班')" class="btn-punch glass-card rounded-2xl p-5 text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-clockout/10 flex items-center justify-center text-3xl mb-3">🌙</div><span class="font-bold text-gray-800 text-lg">下班</span><p class="text-xs text-gray-400 mt-1">Clock Out</p></button></div><p class="text-center text-xs text-white/60 pt-1">📍 打卡時將自動驗證您的所在位置</p></div>
     <div id="panel-leave" class="hidden"><div class="glass-card rounded-2xl p-5 space-y-4"><div class="text-center"><div class="text-2xl mb-1">📝</div><h3 class="font-bold text-gray-800">請假申請</h3></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">假別</label><select id="leave-type" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm bg-white"><option value="">請選擇假別</option><option value="特休">特休（全薪）</option><option value="普通病假">普通病假（半薪）</option><option value="事假">事假（無薪）</option><option value="生理假">生理假（每月1日）</option><option value="婚假">婚假（8日）</option><option value="喪假">喪假（3-8日）</option><option value="公假">公假</option><option value="產假">產假（8週）</option><option value="陪產檢及陪產假">陪產檢及陪產假（7日）</option><option value="產檢假">產檢假（7日）</option><option value="育嬰留職停薪">育嬰留職停薪</option><option value="家庭照顧假">家庭照顧假</option></select></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-bold text-gray-600 mb-1.5">開始時間</label><input type="datetime-local" id="leave-start" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm" /></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">結束時間</label><input type="datetime-local" id="leave-end" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm" /></div></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">事由</label><textarea id="leave-note" rows="2" placeholder="請簡述請假原因" class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand focus:outline-none text-sm resize-none"></textarea></div><div><label class="block text-xs font-bold text-gray-600 mb-1.5">附件（選填，最多 3 個）</label><input type="file" id="leave-files" accept="image/*,.pdf,application/pdf" class="hidden" onchange="onLeaveFilesPicked(event)"><button type="button" onclick="document.getElementById('leave-files').click()" class="w-full py-2.5 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 text-sm active:scale-95 transition">📎 拍照或選擇檔案（看診收據等佐證）</button><div id="leave-attach-list" class="space-y-1.5 mt-2"></div></div><button onclick="handleLeave()" id="btn-leave" class="w-full py-3 bg-leave text-white font-bold rounded-xl btn-punch">送出請假申請</button></div><p class="text-center text-xs text-white/60 pt-2">📋 請假不需定位 ｜ 特休與生理假有額度限制</p></div>
     <div id="panel-history" class="hidden"><div class="glass-card rounded-2xl p-5"><div class="text-center mb-3"><div class="text-2xl mb-1">📄</div><h3 class="font-bold text-gray-800">請假紀錄</h3></div><div class="bg-gray-50 rounded-xl p-2.5 mb-3"><div class="flex gap-1.5 mb-2"><button onclick="setHistoryRange('recent')" id="hr-recent" class="flex-1 py-1.5 rounded-lg text-xs font-medium bg-brand text-white">最近</button><button onclick="setHistoryRange('3m')" id="hr-3m" class="flex-1 py-1.5 rounded-lg text-xs font-medium bg-white text-gray-600 border border-gray-200">近三月</button><button onclick="setHistoryRange('year')" id="hr-year" class="flex-1 py-1.5 rounded-lg text-xs font-medium bg-white text-gray-600 border border-gray-200">特休年度</button></div><div class="flex items-center gap-1.5"><input id="hist-from" type="date" class="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-gray-200 text-xs"><span class="text-xs text-gray-400">~</span><input id="hist-to" type="date" class="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-gray-200 text-xs"><button onclick="setHistoryRange('custom')" class="px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-medium whitespace-nowrap">查詢</button></div></div><div id="leave-history" class="space-y-2 max-h-80 overflow-y-auto"><p class="text-center text-gray-400 text-sm py-4">載入中...</p></div></div></div>
-  <div id="admin-section" class="hidden glass-card rounded-2xl p-5 border-2 border-purple-300"><div class="flex items-center gap-2 mb-3"><span class="text-2xl">🔧</span><div><div class="font-bold text-purple-800">管理員工具</div><div class="text-[10px] text-purple-600">僅限負責人可見</div></div></div><button onclick="openTeacherOverviewModal()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">👥 老師總覽</button><button onclick="openPendingLeaveModal()" id="btn-pending-leave" class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2 relative">📋 待核准請假<span id="pending-leave-badge" class="hidden absolute top-1 right-3 bg-white text-red-600 text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">0</span></button><button onclick="openAttReportModal()" class="w-full bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">📊 出勤查詢</button><button onclick="openCancelLeaveModal()" class="w-full bg-gradient-to-r from-rose-500 to-amber-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">✂️ 銷假（老師到班／取消請假）</button><button onclick="openTyphoonModal()" class="w-full bg-gradient-to-r from-slate-600 to-sky-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">🌀 天災停班設定</button><button onclick="openMonthlyRemindersModal()" class="w-full bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">🎉 本月壽星 &amp; 到職週年</button><button onclick="openUnpaidModal()" class="w-full bg-gradient-to-r from-slate-600 to-slate-800 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">🍼 留職停薪 / 特休基準日</button><div class="grid grid-cols-2 gap-2"><button onclick="openAdjustModal()" class="bg-purple-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整特休</button><button onclick="openAdjustPeriodModal()" class="bg-blue-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整起迄日</button><button onclick="openLogModal()" class="bg-purple-100 text-purple-700 rounded-xl py-3 font-medium text-sm border border-purple-200 active:scale-95 transition">調整紀錄</button><button onclick="refreshQuota()" class="bg-gray-100 text-gray-700 rounded-xl py-3 font-medium text-sm border border-gray-200 active:scale-95 transition">🔄 重新整理</button></div></div>
+  <div id="admin-section" class="hidden glass-card rounded-2xl p-5 border-2 border-purple-300"><div class="flex items-center gap-2 mb-3"><span class="text-2xl">🔧</span><div><div class="font-bold text-purple-800">管理員工具</div><div class="text-[10px] text-purple-600">僅限負責人可見</div></div></div><button onclick="openTeacherOverviewModal()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">👥 老師總覽</button><button onclick="openPendingLeaveModal()" id="btn-pending-leave" class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2 relative">📋 待核准請假<span id="pending-leave-badge" class="hidden absolute top-1 right-3 bg-white text-red-600 text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">0</span></button><button onclick="openAttReportModal()" class="w-full bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">📊 出勤查詢</button><button onclick="openWeekVerifyModal()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">✅ 核實上週出缺勤</button><button onclick="openCancelLeaveModal()" class="w-full bg-gradient-to-r from-rose-500 to-amber-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">✂️ 銷假（老師到班／取消請假）</button><button onclick="openTyphoonModal()" class="w-full bg-gradient-to-r from-slate-600 to-sky-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">🌀 天災停班設定</button><button onclick="openMonthlyRemindersModal()" class="w-full bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">🎉 本月壽星 &amp; 到職週年</button><button onclick="openUnpaidModal()" class="w-full bg-gradient-to-r from-slate-600 to-slate-800 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition mb-2">🍼 留職停薪 / 特休基準日</button><div class="grid grid-cols-2 gap-2"><button onclick="openAdjustModal()" class="bg-purple-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整特休</button><button onclick="openAdjustPeriodModal()" class="bg-blue-600 text-white rounded-xl py-3 font-medium text-sm active:scale-95 transition">調整起迄日</button><button onclick="openLogModal()" class="bg-purple-100 text-purple-700 rounded-xl py-3 font-medium text-sm border border-purple-200 active:scale-95 transition">調整紀錄</button><button onclick="refreshQuota()" class="bg-gray-100 text-gray-700 rounded-xl py-3 font-medium text-sm border border-gray-200 active:scale-95 transition">🔄 重新整理</button></div></div>
   </div>
 </div>
 <div id="modal" class="fixed inset-0 z-50 hidden"><div class="modal-overlay absolute inset-0 bg-black/40 flex items-center justify-center p-6"><div class="modal-content glass-card rounded-3xl p-8 w-full max-w-sm text-center"><div id="modal-icon" class="text-6xl mb-4"></div><h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-2"></h3><p id="modal-message" class="text-gray-600 text-sm mb-2"></p><p id="modal-detail" class="text-gray-400 text-xs mb-6"></p><button onclick="closeModal()" class="w-full py-3 bg-brand text-white font-bold rounded-xl btn-punch">確認</button></div></div></div>
@@ -100,7 +100,7 @@ function setHistoryRange(kind){const ids=["hr-recent","hr-3m","hr-year"];ids.for
 async function loadHistory(from,to){const el=document.getElementById("leave-history");el.innerHTML='<p class="text-center text-gray-400 text-sm py-4">載入中...</p>';try{const q1={uid:userId,action:"myLeaves",lat:0,lon:0},q2={uid:userId,action:"myAdjustments",lat:0,lon:0};if(from){q1.from=from;q2.from=from}if(to){q1.to=to;q2.to=to}const[lr,ar]=await Promise.all([postToGAS(q1),postToGAS(q2).catch(()=>({status:"ok",adjustments:[]}))]);const _ts=s=>{const t=new Date(String(s||"").replace(/\//g,"-").replace(" ","T")).getTime();return isNaN(t)?0:t};const items=[];if(lr&&lr.status==="ok"&&lr.leaves)lr.leaves.forEach(l=>items.push({kind:"leave",ts:_ts(l.time),data:l}));if(ar&&ar.status==="ok"&&ar.adjustments)ar.adjustments.forEach(a=>items.push({kind:"adjust",ts:_ts(a.time),data:a}));if(items.length===0){el.innerHTML='<p class="text-center text-gray-400 text-sm py-4">'+((from||to)?"此區間沒有紀錄":"尚無請假紀錄")+'</p>';return}items.sort((a,b)=>b.ts-a.ts);el.innerHTML=items.map(it=>{if(it.kind==="adjust"){const a=it.data;if(a.kind==="settle"){const isCash=a.settleMode==="折現";const box=isCash?"bg-emerald-50 border-emerald-200":"bg-indigo-50 border-indigo-200";const pill=isCash?"bg-emerald-500":"bg-indigo-500";const txt=isCash?"text-emerald-700":"text-indigo-700";const per=(a.periodStart&&a.periodEnd)?('<p class="text-[11px] text-gray-500">年度 '+a.periodStart+' ~ '+a.periodEnd+'</p>'):'';return '<div class="rounded-xl p-3 border '+box+'"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-800">特休年度結算</span><span class="text-[10px] px-2 py-0.5 rounded-full text-white font-medium '+pill+'">'+a.settleMode+'</span></div><p class="text-sm font-bold '+txt+'">'+a.settleMode+' '+a.settleDays+' 天</p>'+per+'<p class="text-[11px] text-gray-400 mt-0.5">'+a.time+(isCash?' ・折現金額由園方另行發放':' ・已加入新年度額度')+'</p></div>'}const pos=a.days>0,sign=pos?"+":"",col=pos?"text-green-600":"text-red-600";return '<div class="bg-purple-50 rounded-xl p-3 border border-purple-100"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-800">特休調整</span><span class="status-badge status-adjust">特休調整</span></div><p class="text-sm font-bold '+col+'">'+sign+a.days+' 天</p><p class="text-xs text-gray-400 mt-0.5">'+a.time+(a.reason?' ・'+a.reason:'')+'</p></div>'}const l=it.data,b=l.status==="已核准"?"status-approved":l.status==="拒絕"?"status-rejected":l.status==="已銷假"?"status-cancel":"status-pending";return '<div class="bg-gray-50 rounded-xl p-3"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-800">'+l.type+'</span><span class="status-badge '+b+'">'+l.status+'</span></div><p class="text-xs text-gray-500">'+l.start+' ~ '+l.end+'</p><p class="text-xs text-gray-400 mt-0.5">'+l.days+'天/'+l.hours+'hr'+(l.reason?' ・'+l.reason:'')+'</p>'+(l.remark?'<p class="text-xs text-brand mt-0.5">備註：'+l.remark+'</p>':'')+'</div>'}).join("")}catch(e){el.innerHTML='<p class="text-center text-red-400 text-sm py-4">載入失敗</p>'}}
 function getLocation(){return new Promise((res,rej)=>{if(!navigator.geolocation){rej(new Error("no GPS"));return}navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lon:p.coords.longitude}),e=>{const m={1:"拒絕定位",2:"無法定位",3:"逾時"};rej(new Error(m[e.code]||"GPS失敗"))},{enableHighAccuracy:true,timeout:15000,maximumAge:0})})}
 // v9.1 只讀查詢類動作允許自動重試；寫入類動作（打卡／請假／審核／調整）一律不重試，避免重複寫入
-var XG_RETRY_SAFE=["check","checkWhitelist","getOptions","myLeaves","myAdjustments","checkAdmin","getTeacherListForAdmin","getMonthlyReminders","getPendingLeaves","getTeacherLeaveDetail","getAttendanceReport","getCancellableLeaves","getUnpaidLeaves","getAllTeachersQuota","getAdjustmentLog","getPendingSettlements"];
+var XG_RETRY_SAFE=["check","checkWhitelist","getOptions","myLeaves","myAdjustments","checkAdmin","getTeacherListForAdmin","getMonthlyReminders","getPendingLeaves","getTeacherLeaveDetail","getAttendanceReport","getCancellableLeaves","getUnpaidLeaves","getAllTeachersQuota","getAdjustmentLog","getPendingSettlements","getWeekVerify"];
 function _xgSleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 async function _postOnce(p){
   var r=await fetch(GAS_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(p)});
@@ -307,6 +307,152 @@ async function _doTyphoon(){
   } catch(e){
     b.innerHTML = '<p class="text-red-500 text-sm">連線失敗：' + escapeHtml(e.message) + '</p>' + _closeBtn();
   }
+}
+
+// ===== v9.7 核實上週出缺勤（管理員）=====
+// 後端 WeekVerify.gs：getWeekVerify（唯讀，可重試）／confirmWeekVerify（寫入，不重試）
+var _wv={weekOf:null,data:null,busy:false};
+function _wvEsc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function _wvHM(m){m=Math.round(m||0);return Math.floor(m/60)+":"+String(m%60).padStart(2,"0")}
+function _wvIso(k){return String(k||"").replace(/\//g,"-")}
+function _wvStyle(){
+  if(document.getElementById("xg-wv-style"))return;
+  var s=document.createElement("style");s.id="xg-wv-style";
+  s.textContent=".wv-wrap{overflow:auto;border:1px solid #e2e8f0;border-radius:12px;background:#fff;-webkit-overflow-scrolling:touch}"
+  +".wv-t{border-collapse:separate;border-spacing:0;font-size:12px;line-height:1.45;min-width:100%}"
+  +".wv-t th,.wv-t td{border-right:1px solid #eef1f5;border-bottom:1px solid #eef1f5;padding:6px 6px;vertical-align:top;background:#fff;text-align:center}"
+  +".wv-t thead th{position:sticky;top:0;z-index:20;background:#f1f5f9;color:#475569;font-weight:600;white-space:nowrap}"
+  +".wv-t .nm{position:sticky;left:0;z-index:10;text-align:left;font-weight:700;color:#1f2937;white-space:nowrap;border-right:1px solid #cbd5e1;min-width:88px}"
+  +".wv-t thead .nm{z-index:30;background:#f1f5f9}"
+  +".wv-t tr.warn td{background:#fff7f5}"
+  +".wv-t td.lft{text-align:left}"
+  +".wv-ot{color:#b45309;font-weight:700}"
+  +".wv-sub{display:block;font-size:10px;color:#94a3b8;font-weight:400}"
+  +".wv-lv{color:#b91c1c;display:block}"
+  +".wv-pd{color:#a16207;display:block}"
+  +".wv-mis{color:#dc2626;display:block;font-size:11px}"
+  +".wv-tm{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;display:block;white-space:nowrap;color:#1f2937}"
+  +".wv-dash{color:#cbd5e1}"
+  +".wv-t th.we,.wv-t td.we{background:#fafbfc}";
+  document.head.appendChild(s);
+}
+function openWeekVerifyModal(){
+  try{_attInjectStyle()}catch(e){}
+  _wvStyle();
+  var m=document.getElementById("admin-modal"),b=document.getElementById("admin-modal-body");
+  document.getElementById("admin-modal-title").textContent="✅ 核實上週出缺勤";
+  b.innerHTML='<div class="space-y-3">'
+    +'<div class="flex items-center gap-2">'
+    +'<button onclick="wvLoad(-1)" class="bg-gray-100 text-gray-700 rounded-lg px-3 py-2 text-sm active:scale-95 transition">‹ 上一週</button>'
+    +'<div id="wv-range" class="flex-1 text-center font-bold text-gray-800 text-sm">載入中…</div>'
+    +'<button onclick="wvLoad(1)" class="bg-gray-100 text-gray-700 rounded-lg px-3 py-2 text-sm active:scale-95 transition">下一週 ›</button>'
+    +'</div>'
+    +'<div id="wv-status"></div>'
+    +'<div id="wv-result"><div class="text-center text-gray-400 text-sm py-8">讀取打卡與請假紀錄中…</div></div>'
+    +'</div>';
+  _wv.weekOf=null;_wv.data=null;
+  try{_attSetWide(true)}catch(e){}
+  m.classList.remove("hidden");
+  wvLoad(0);
+}
+async function wvLoad(offset){
+  if(_wv.busy)return;
+  _wv.busy=true;
+  var res=document.getElementById("wv-result");
+  if(res)res.innerHTML='<div class="text-center text-gray-400 text-sm py-8">讀取打卡與請假紀錄中…</div>';
+  try{
+    var p={action:"getWeekVerify",adminUid:userId,offset:offset||0};
+    if(_wv.weekOf)p.weekOf=_wv.weekOf;
+    var r=await postToGAS(p);
+    if(!r||!r.ok)throw new Error((r&&r.message)||"讀取失敗");
+    _wv.data=r;_wv.weekOf=_wvIso(r.weekStart);
+    wvRender();
+  }catch(e){
+    if(res)res.innerHTML='<div class="text-center text-red-600 text-sm py-6">讀取失敗：'+_wvEsc(e&&e.message?e.message:e)+'<br><button onclick="wvLoad(0)" class="mt-3 bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm">重試</button></div>';
+  }finally{_wv.busy=false}
+}
+function _wvStatusHtml(r){
+  if(r.verified)return '<div class="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-3 py-2">✅ 已核實　<span class="text-xs text-emerald-700">'+_wvEsc(r.verified.by)+'｜'+_wvEsc(r.verified.at)+'</span></div>';
+  if(r.isCurrentOrFuture)return '<div class="rounded-xl bg-gray-50 border border-gray-200 text-gray-600 text-sm px-3 py-2">⏳ 這週還沒結束，可以先看，週一以後再核實</div>';
+  return '<div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm px-3 py-2">⚠️ 尚未核實</div>';
+}
+function wvRender(){
+  var r=_wv.data;if(!r)return;
+  var days=r.days.filter(function(d){return r.showWeekend||!d.weekend});
+  document.getElementById("wv-range").textContent=r.rangeLabel+(r.showWeekend?"（含週末）":"");
+  document.getElementById("wv-status").innerHTML=_wvStatusHtml(r);
+  var warnN=0;
+  // 彙總表
+  var h='<div class="text-xs font-semibold text-gray-500 mb-1">📊 本週彙總（加班合計 <span class="wv-ot">'+r.totalOt+' 小時</span>）</div>';
+  h+='<div class="wv-wrap" style="max-height:46vh"><table class="wv-t"><thead><tr>'
+    +'<th class="nm">老師</th><th>出勤</th><th>平日在園</th><th>加班(計)</th><th>週末</th><th>已核准請假</th><th>待審核</th><th>缺卡／缺勤</th>'
+    +'</tr></thead><tbody>';
+  r.teachers.forEach(function(t){
+    var warn=t.missing&&t.missing.length;if(warn)warnN++;
+    h+='<tr class="'+(warn?"warn":"")+'"><td class="nm">'+_wvEsc(t.label)+'</td>';
+    h+='<td>'+t.workDays+'</td>';
+    h+='<td>'+(t.presentMin?_wvHM(t.presentMin):'<span class="wv-dash">—</span>')+'</td>';
+    h+='<td>'+(t.otHours?'<span class="wv-ot">'+t.otHours+' h</span>':(t.otMin?'0':'<span class="wv-dash">—</span>'))+(t.otMin?'<span class="wv-sub">原始 '+_wvHM(t.otMin)+'</span>':'')+'</td>';
+    h+='<td>'+(t.weekendMin?_wvHM(t.weekendMin):'<span class="wv-dash">—</span>')+'</td>';
+    h+='<td class="lft">'+(t.ap.length?t.ap.map(function(a){return '<span class="wv-lv">'+_wvEsc(a.type)+' '+a.d+'天（'+a.h+'h）'+(a.split?'＊':'')+'</span>'}).join(''):'<span class="wv-dash">—</span>')+'</td>';
+    h+='<td class="lft">'+(t.pd.length?t.pd.map(function(a){return '<span class="wv-pd">'+_wvEsc(a.type)+' '+a.d+'天（'+a.h+'h）'+(a.split?'＊':'')+'</span>'}).join(''):'<span class="wv-dash">—</span>')+'</td>';
+    h+='<td class="lft">'+(warn?t.missing.map(function(x){return '<span class="wv-mis">'+_wvEsc(x)+'</span>'}).join(''):'<span class="wv-dash">—</span>')+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  if(warnN)h+='<div class="text-xs text-red-600 mt-1">有 '+warnN+' 位老師有缺卡或缺勤提醒（淡紅底），核實前請先確認或補登。</div>';
+  // 每日明細
+  h+='<details class="mt-3"><summary class="text-xs font-semibold text-gray-500 cursor-pointer select-none">🗓 每日打卡明細（點開）</summary>';
+  h+='<div class="wv-wrap mt-2" style="max-height:56vh"><table class="wv-t"><thead><tr><th class="nm">老師</th>';
+  days.forEach(function(d){h+='<th class="'+(d.weekend?"we":"")+'">'+_wvEsc(d.label)+'</th>'});
+  h+='</tr></thead><tbody>';
+  r.teachers.forEach(function(t){
+    h+='<tr><td class="nm">'+_wvEsc(t.label)+'</td>';
+    days.forEach(function(d){
+      var x=(t.daily&&t.daily[d.key])||{recs:[],lvs:[]},c='';
+      (x.recs||[]).forEach(function(p){c+='<span class="wv-tm">'+_wvEsc(p.a)+' '+_wvEsc(p.t)+'</span>'});
+      (x.lvs||[]).forEach(function(l){c+='<span class="'+(l.pending?"wv-pd":"wv-lv")+'">🏖 '+_wvEsc(l.type)+' '+_wvEsc(l.time)+(l.pending?'（待審）':'')+'</span>'});
+      if(x.missing)c+='<span class="wv-mis">⚠️ '+_wvEsc(x.missing)+'</span>';
+      if(x.otMin)c+='<span class="wv-sub" style="color:#b45309">超時 '+_wvHM(x.otMin)+'｜計 '+x.otH+'h</span>';
+      if(d.weekend&&x.dur)c+='<span class="wv-sub" style="color:#b45309">週末 '+_wvHM(x.dur)+'</span>';
+      h+='<td class="'+(d.weekend?"we":"")+'">'+(c||'<span class="wv-dash">—</span>')+'</td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table></div></details>';
+  // 規則說明
+  h+='<div class="text-[11px] text-gray-400 leading-relaxed mt-3">計算規則：平日在園＝最晚下班卡 − 最早上班卡；超過 '+_wvHM(r.rules.workMin)+'（含 1 小時午休）為加班，逐日計，整點照算、餘數超過 '+r.rules.roundMin+' 分鐘記 1 小時。缺卡當日不計加班。週末出勤另列，不併入平日加班。請假以假單天數／時數為準，＊為跨週假單按平日比例拆分；待審核不計入。</div>';
+  // 核實按鈕
+  if(r.isCurrentOrFuture){
+    h+='<button disabled class="w-full mt-3 bg-gray-200 text-gray-500 rounded-xl py-3 font-medium text-sm">這週還沒結束，無法核實</button>';
+  }else{
+    var lbl=r.verified?'🔁 重新核實（覆蓋先前紀錄）':'✅ 核實無誤，存檔';
+    h+='<button id="wv-confirm-btn" onclick="wvConfirm()" class="w-full mt-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl py-3 font-bold text-sm active:scale-95 transition">'+lbl+'</button>';
+  }
+  document.getElementById("wv-result").innerHTML=h;
+}
+async function wvConfirm(){
+  var r=_wv.data;if(!r||_wv.busy)return;
+  var msg="確認核實 "+r.rangeLabel+" 的出缺勤？\n\n加班合計 "+r.totalOt+" 小時\n系統會重新計算一次，存進試算表 Weekly_Verify 分頁。";
+  if(r.verified)msg+="\n\n這週已由 "+r.verified.by+" 於 "+r.verified.at+" 核實過，將覆蓋舊紀錄。";
+  if(!confirm(msg))return;
+  var btn=document.getElementById("wv-confirm-btn");
+  _wv.busy=true;
+  if(btn){btn.disabled=true;btn.textContent="存檔中…"}
+  try{
+    var res=await postToGAS({action:"confirmWeekVerify",adminUid:userId,weekOf:_wv.weekOf});
+    if(!res||!res.ok)throw new Error((res&&res.message)||"存檔失敗");
+    _wv.data.verified=res.verified;
+    if(typeof res.totalOt==="number"&&res.totalOt!==r.totalOt){
+      _wv.busy=false;await wvLoad(0);
+      alert("已核實並存檔。\n注意：存檔時重新計算的加班合計為 "+res.totalOt+" 小時（剛才畫面為 "+r.totalOt+" 小時，期間有新的打卡或假單），畫面已更新。");
+      return;
+    }
+    wvRender();
+  }catch(e){
+    alert("核實失敗："+(e&&e.message?e.message:e)+"\n\n請重新整理後再按一次（重複核實不會產生重複資料）。");
+    if(btn){btn.disabled=false;btn.textContent=r.verified?'🔁 重新核實（覆蓋先前紀錄）':'✅ 核實無誤，存檔'}
+  }finally{_wv.busy=false}
 }
 
 // ===== v7.5 出勤查詢（管理員） =====
