@@ -310,11 +310,14 @@ async function _doTyphoon(){
 }
 
 // ===== v9.7 核實上週出缺勤（管理員）=====
-// 後端 WeekVerify.gs：getWeekVerify（唯讀，可重試）／confirmWeekVerify（寫入，不重試）
-var _wv={weekOf:null,data:null,busy:false};
+// v9.8：打卡紀錄直接攤開、整週加班可修改、假單可改假別／時間、無假單日可補登
+// 後端 WeekVerify.gs v1.1：getWeekVerify（唯讀，可重試）／confirmWeekVerify、wvUpdateLeave、wvAddLeave（寫入，不重試）
+var _wv={weekOf:null,data:null,busy:false,ot:{}};
 function _wvEsc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function _wvHM(m){m=Math.round(m||0);return Math.floor(m/60)+":"+String(m%60).padStart(2,"0")}
 function _wvIso(k){return String(k||"").replace(/\//g,"-")}
+function _wvDT(s){var m=String(s||"").match(/^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2})/);return m?m[1]+"-"+m[2]+"-"+m[3]+"T"+m[4]+":"+m[5]:""}
+function _wvNum(v){var n=Number(v);return isNaN(n)?0:Math.round(n*100)/100}
 function _wvStyle(){
   if(document.getElementById("xg-wv-style"))return;
   var s=document.createElement("style");s.id="xg-wv-style";
@@ -322,18 +325,31 @@ function _wvStyle(){
   +".wv-t{border-collapse:separate;border-spacing:0;font-size:12px;line-height:1.45;min-width:100%}"
   +".wv-t th,.wv-t td{border-right:1px solid #eef1f5;border-bottom:1px solid #eef1f5;padding:6px 6px;vertical-align:top;background:#fff;text-align:center}"
   +".wv-t thead th{position:sticky;top:0;z-index:20;background:#f1f5f9;color:#475569;font-weight:600;white-space:nowrap}"
-  +".wv-t .nm{position:sticky;left:0;z-index:10;text-align:left;font-weight:700;color:#1f2937;white-space:nowrap;border-right:1px solid #cbd5e1;min-width:88px}"
+  +".wv-t .nm{position:sticky;left:0;z-index:10;text-align:left;font-weight:700;color:#1f2937;white-space:nowrap;border-right:1px solid #cbd5e1;min-width:92px}"
   +".wv-t thead .nm{z-index:30;background:#f1f5f9}"
   +".wv-t tr.warn td{background:#fff7f5}"
   +".wv-t td.lft{text-align:left}"
+  +".wv-t td.day{min-width:96px}"
+  +".wv-t th.sep,.wv-t td.sep{border-left:2px solid #cbd5e1}"
   +".wv-ot{color:#b45309;font-weight:700}"
-  +".wv-sub{display:block;font-size:10px;color:#94a3b8;font-weight:400}"
+  +".wv-sub{display:block;font-size:10px;color:#94a3b8;font-weight:400;white-space:nowrap}"
+  +".wv-otd{display:block;font-size:10px;color:#b45309;white-space:nowrap}"
+  +".wv-lvb{display:block;width:100%;margin-top:2px;padding:2px 4px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;font-size:11px;text-align:left;cursor:pointer}"
+  +".wv-lvb.pd{border-color:#fde68a;background:#fffbeb;color:#a16207}"
+  +".wv-add{display:inline-block;margin-top:3px;padding:1px 6px;border-radius:6px;border:1px dashed #94a3b8;color:#64748b;font-size:10px;background:#fff;cursor:pointer}"
   +".wv-lv{color:#b91c1c;display:block}"
   +".wv-pd{color:#a16207;display:block}"
   +".wv-mis{color:#dc2626;display:block;font-size:11px}"
   +".wv-tm{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;display:block;white-space:nowrap;color:#1f2937}"
   +".wv-dash{color:#cbd5e1}"
-  +".wv-t th.we,.wv-t td.we{background:#fafbfc}";
+  +".wv-in{width:64px;border:1px solid #cbd5e1;border-radius:6px;padding:3px 4px;text-align:center;font-size:12px}"
+  +".wv-in.chg{border-color:#f59e0b;background:#fffbeb;font-weight:700;color:#b45309}"
+  +".wv-note{width:130px;border:1px solid #cbd5e1;border-radius:6px;padding:3px 5px;font-size:11px}"
+  +".wv-t th.we,.wv-t td.we{background:#fafbfc}"
+  +"#wv-editor{position:fixed;inset:0;z-index:70;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px}"
+  +"#wv-editor .card{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:18px;box-shadow:0 20px 40px rgba(0,0,0,.2)}"
+  +"#wv-editor label{display:block;font-size:12px;color:#475569;margin:10px 0 4px}"
+  +"#wv-editor input,#wv-editor select{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:8px 10px;font-size:14px;background:#f8fafc}";
   document.head.appendChild(s);
 }
 function openWeekVerifyModal(){
@@ -350,7 +366,7 @@ function openWeekVerifyModal(){
     +'<div id="wv-status"></div>'
     +'<div id="wv-result"><div class="text-center text-gray-400 text-sm py-8">讀取打卡與請假紀錄中…</div></div>'
     +'</div>';
-  _wv.weekOf=null;_wv.data=null;
+  _wv.weekOf=null;_wv.data=null;_wv.ot={};
   try{_attSetWide(true)}catch(e){}
   m.classList.remove("hidden");
   wvLoad(0);
@@ -365,16 +381,31 @@ async function wvLoad(offset){
     if(_wv.weekOf)p.weekOf=_wv.weekOf;
     var r=await postToGAS(p);
     if(!r||!r.ok)throw new Error((r&&r.message)||"讀取失敗");
-    _wv.data=r;_wv.weekOf=_wvIso(r.weekStart);
+    var newWeek=_wvIso(r.weekStart);
+    if(newWeek!==_wv.weekOf)_wv.ot={};           // 換週才清掉未存的加班修改
+    _wv.data=r;_wv.weekOf=newWeek;
+    // 已核實的週：帶入當時存的加班核實值（本地有修改就以本地為準）
+    var ov=r.overrides||{};
+    Object.keys(ov).forEach(function(u){if(!_wv.ot[u])_wv.ot[u]={ot:ov[u].ot,note:ov[u].note||""}});
     wvRender();
   }catch(e){
     if(res)res.innerHTML='<div class="text-center text-red-600 text-sm py-6">讀取失敗：'+_wvEsc(e&&e.message?e.message:e)+'<br><button onclick="wvLoad(0)" class="mt-3 bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm">重試</button></div>';
   }finally{_wv.busy=false}
 }
 function _wvStatusHtml(r){
-  if(r.verified)return '<div class="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-3 py-2">✅ 已核實　<span class="text-xs text-emerald-700">'+_wvEsc(r.verified.by)+'｜'+_wvEsc(r.verified.at)+'</span></div>';
-  if(r.isCurrentOrFuture)return '<div class="rounded-xl bg-gray-50 border border-gray-200 text-gray-600 text-sm px-3 py-2">⏳ 這週還沒結束，可以先看，週一以後再核實</div>';
+  if(r.verified)return '<div class="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-3 py-2">✅ 已核實　<span class="text-xs text-emerald-700">'+_wvEsc(r.verified.by)+'｜'+_wvEsc(r.verified.at)+'</span>　<span class="text-xs text-gray-500">修改後可再按一次重新核實</span></div>';
+  if(r.isCurrentOrFuture)return '<div class="rounded-xl bg-gray-50 border border-gray-200 text-gray-600 text-sm px-3 py-2">⏳ 這週還沒結束，可以先看、先改假單，週一以後再核實</div>';
   return '<div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm px-3 py-2">⚠️ 尚未核實</div>';
+}
+function _wvFinalOt(t){var o=_wv.ot[t.uid];return(o&&o.ot!==""&&o.ot!==null&&o.ot!==undefined)?_wvNum(o.ot):t.otHours}
+function _wvTotals(){
+  var r=_wv.data,sys=0,fin=0;
+  r.teachers.forEach(function(t){sys+=t.otHours;fin+=_wvFinalOt(t)});
+  return{sys:Math.round(sys*100)/100,fin:Math.round(fin*100)/100};
+}
+function _wvTotalHtml(){
+  var t=_wvTotals();
+  return '加班合計：系統 <span class="wv-ot">'+t.sys+' 小時</span>'+(t.fin!==t.sys?'　→　核實 <span class="wv-ot" style="color:#047857">'+t.fin+' 小時</span>':'');
 }
 function wvRender(){
   var r=_wv.data;if(!r)return;
@@ -382,76 +413,150 @@ function wvRender(){
   document.getElementById("wv-range").textContent=r.rangeLabel+(r.showWeekend?"（含週末）":"");
   document.getElementById("wv-status").innerHTML=_wvStatusHtml(r);
   var warnN=0;
-  // 彙總表
-  var h='<div class="text-xs font-semibold text-gray-500 mb-1">📊 本週彙總（加班合計 <span class="wv-ot">'+r.totalOt+' 小時</span>）</div>';
-  h+='<div class="wv-wrap" style="max-height:46vh"><table class="wv-t"><thead><tr>'
-    +'<th class="nm">老師</th><th>出勤</th><th>平日在園</th><th>加班(計)</th><th>週末</th><th>已核准請假</th><th>待審核</th><th>缺卡／缺勤</th>'
-    +'</tr></thead><tbody>';
-  r.teachers.forEach(function(t){
+  var h='<div class="flex flex-wrap items-center justify-between gap-2 mb-1"><div id="wv-total" class="text-xs font-semibold text-gray-600">'+_wvTotalHtml()+'</div>'
+    +'<div class="text-[11px] text-gray-400">點紅色假單可修改；姓名下或缺勤日可「＋補假」；加班(核實)欄可直接改</div></div>';
+  h+='<div class="wv-wrap" style="max-height:62vh"><table class="wv-t"><thead><tr><th class="nm">老師</th>';
+  days.forEach(function(d){h+='<th class="'+(d.weekend?"we":"")+'">'+_wvEsc(d.label)+'</th>'});
+  h+='<th class="sep">出勤</th><th>加班<br>系統</th><th>加班<br>核實</th><th>調整說明</th><th>已核准請假</th><th>待審核</th><th>缺卡／缺勤</th></tr></thead><tbody>';
+  r.teachers.forEach(function(t,ti){
     var warn=t.missing&&t.missing.length;if(warn)warnN++;
-    h+='<tr class="'+(warn?"warn":"")+'"><td class="nm">'+_wvEsc(t.label)+'</td>';
-    h+='<td>'+t.workDays+'</td>';
-    h+='<td>'+(t.presentMin?_wvHM(t.presentMin):'<span class="wv-dash">—</span>')+'</td>';
-    h+='<td>'+(t.otHours?'<span class="wv-ot">'+t.otHours+' h</span>':(t.otMin?'0':'<span class="wv-dash">—</span>'))+(t.otMin?'<span class="wv-sub">原始 '+_wvHM(t.otMin)+'</span>':'')+'</td>';
-    h+='<td>'+(t.weekendMin?_wvHM(t.weekendMin):'<span class="wv-dash">—</span>')+'</td>';
+    h+='<tr class="'+(warn?"warn":"")+'"><td class="nm">'+_wvEsc(t.label)+(t.owner?'':'<br><button type="button" class="wv-add" onclick="wvAddLeaveUI('+ti+',null)">＋補假</button>')+'</td>';
+    days.forEach(function(d){
+      var x=(t.daily&&t.daily[d.key])||{recs:[],lvs:[]},c='';
+      (x.recs||[]).forEach(function(p){c+='<span class="wv-tm">'+_wvEsc(p.a)+' '+_wvEsc(p.t)+'</span>'});
+      (x.lvs||[]).forEach(function(l,li){
+        c+='<button type="button" class="wv-lvb'+(l.pending?' pd':'')+'" onclick="wvEditLeave('+ti+',\''+d.key+'\','+li+')">✏️ '+_wvEsc(l.type)+' '+_wvEsc(l.time)+(l.pending?'（待審）':'')+'</button>';
+      });
+      if(x.missing)c+='<span class="wv-mis">⚠️ '+_wvEsc(x.missing)+'</span>';
+      if(x.otMin)c+='<span class="wv-otd">超時 '+_wvHM(x.otMin)+'｜計 '+x.otH+'h</span>';
+      if(d.weekend&&x.dur)c+='<span class="wv-otd">週末 '+_wvHM(x.dur)+'</span>';
+      if(x.absent&&!t.owner)c+='<span class="wv-mis">無打卡、無假單</span><button type="button" class="wv-add" style="border-color:#f87171;color:#dc2626" onclick="wvAddLeaveUI('+ti+',\''+d.key+'\')">＋補假</button>';
+      if(!c)c='<span class="wv-dash">—</span>';
+      h+='<td class="day'+(d.weekend?" we":"")+'">'+c+'</td>';
+    });
+    var o=_wv.ot[t.uid]||{},fin=_wvFinalOt(t),chg=fin!==t.otHours;
+    h+='<td class="sep">'+t.workDays+'</td>';
+    h+='<td>'+(t.otHours?'<span class="wv-ot">'+t.otHours+'</span>':'0')+(t.otMin?'<span class="wv-sub">原始 '+_wvHM(t.otMin)+'</span>':'')+'</td>';
+    h+='<td><input type="number" inputmode="decimal" min="0" max="80" step="0.5" class="wv-in'+(chg?' chg':'')+'" value="'+fin+'" oninput="wvOtInput(\''+t.uid+'\',this,'+t.otHours+')"></td>';
+    h+='<td><input type="text" maxlength="200" class="wv-note" placeholder="'+(chg?'請填原因':'（選填）')+'" value="'+_wvEsc(o.note||"")+'" oninput="wvNoteInput(\''+t.uid+'\',this)"></td>';
     h+='<td class="lft">'+(t.ap.length?t.ap.map(function(a){return '<span class="wv-lv">'+_wvEsc(a.type)+' '+a.d+'天（'+a.h+'h）'+(a.split?'＊':'')+'</span>'}).join(''):'<span class="wv-dash">—</span>')+'</td>';
     h+='<td class="lft">'+(t.pd.length?t.pd.map(function(a){return '<span class="wv-pd">'+_wvEsc(a.type)+' '+a.d+'天（'+a.h+'h）'+(a.split?'＊':'')+'</span>'}).join(''):'<span class="wv-dash">—</span>')+'</td>';
     h+='<td class="lft">'+(warn?t.missing.map(function(x){return '<span class="wv-mis">'+_wvEsc(x)+'</span>'}).join(''):'<span class="wv-dash">—</span>')+'</td>';
     h+='</tr>';
   });
   h+='</tbody></table></div>';
-  if(warnN)h+='<div class="text-xs text-red-600 mt-1">有 '+warnN+' 位老師有缺卡或缺勤提醒（淡紅底），核實前請先確認或補登。</div>';
-  // 每日明細
-  h+='<details class="mt-3"><summary class="text-xs font-semibold text-gray-500 cursor-pointer select-none">🗓 每日打卡明細（點開）</summary>';
-  h+='<div class="wv-wrap mt-2" style="max-height:56vh"><table class="wv-t"><thead><tr><th class="nm">老師</th>';
-  days.forEach(function(d){h+='<th class="'+(d.weekend?"we":"")+'">'+_wvEsc(d.label)+'</th>'});
-  h+='</tr></thead><tbody>';
-  r.teachers.forEach(function(t){
-    h+='<tr><td class="nm">'+_wvEsc(t.label)+'</td>';
-    days.forEach(function(d){
-      var x=(t.daily&&t.daily[d.key])||{recs:[],lvs:[]},c='';
-      (x.recs||[]).forEach(function(p){c+='<span class="wv-tm">'+_wvEsc(p.a)+' '+_wvEsc(p.t)+'</span>'});
-      (x.lvs||[]).forEach(function(l){c+='<span class="'+(l.pending?"wv-pd":"wv-lv")+'">🏖 '+_wvEsc(l.type)+' '+_wvEsc(l.time)+(l.pending?'（待審）':'')+'</span>'});
-      if(x.missing)c+='<span class="wv-mis">⚠️ '+_wvEsc(x.missing)+'</span>';
-      if(x.otMin)c+='<span class="wv-sub" style="color:#b45309">超時 '+_wvHM(x.otMin)+'｜計 '+x.otH+'h</span>';
-      if(d.weekend&&x.dur)c+='<span class="wv-sub" style="color:#b45309">週末 '+_wvHM(x.dur)+'</span>';
-      h+='<td class="'+(d.weekend?"we":"")+'">'+(c||'<span class="wv-dash">—</span>')+'</td>';
-    });
-    h+='</tr>';
-  });
-  h+='</tbody></table></div></details>';
-  // 規則說明
-  h+='<div class="text-[11px] text-gray-400 leading-relaxed mt-3">計算規則：平日在園＝最晚下班卡 − 最早上班卡；超過 '+_wvHM(r.rules.workMin)+'（含 1 小時午休）為加班，逐日計，整點照算、餘數超過 '+r.rules.roundMin+' 分鐘記 1 小時。缺卡當日不計加班。週末出勤另列，不併入平日加班。請假以假單天數／時數為準，＊為跨週假單按平日比例拆分；待審核不計入。</div>';
-  // 核實按鈕
+  if(warnN)h+='<div class="text-xs text-red-600 mt-1">有 '+warnN+' 位老師有缺卡或缺勤提醒（淡紅底），可用「＋補假」補登，或請老師補打卡。</div>';
+  h+='<div class="text-[11px] text-gray-400 leading-relaxed mt-2">計算規則：平日在園＝最晚下班卡 − 最早上班卡；超過 '+_wvHM(r.rules.workMin)+'（含 1 小時午休）為加班，逐日計，整點照算、餘數超過 '+r.rules.roundMin+' 分鐘記 1 小時。缺卡當日不計加班。週末出勤另列。請假以假單天數／時數為準，＊為跨週假單按平日比例拆分；待審核不計入。<br>修改假單／補假會直接寫入原始假單並同步日曆，特休餘額自動重算；加班核實值只存在核實紀錄。</div>';
   if(r.isCurrentOrFuture){
     h+='<button disabled class="w-full mt-3 bg-gray-200 text-gray-500 rounded-xl py-3 font-medium text-sm">這週還沒結束，無法核實</button>';
   }else{
-    var lbl=r.verified?'🔁 重新核實（覆蓋先前紀錄）':'✅ 核實無誤，存檔';
+    var lbl=r.verified?'🔁 重新核實並存檔（覆蓋先前紀錄）':'✅ 核實無誤，存檔';
     h+='<button id="wv-confirm-btn" onclick="wvConfirm()" class="w-full mt-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl py-3 font-bold text-sm active:scale-95 transition">'+lbl+'</button>';
   }
   document.getElementById("wv-result").innerHTML=h;
 }
+function wvOtInput(uid,el,sys){
+  if(!_wv.ot[uid])_wv.ot[uid]={ot:"",note:""};
+  _wv.ot[uid].ot=el.value;
+  var chg=el.value!==""&&_wvNum(el.value)!==sys;
+  el.classList.toggle("chg",chg);
+  var note=el.parentNode.nextSibling&&el.parentNode.nextSibling.querySelector("input");
+  if(note)note.placeholder=chg?"請填原因":"（選填）";
+  var tot=document.getElementById("wv-total");if(tot)tot.innerHTML=_wvTotalHtml();
+}
+function wvNoteInput(uid,el){
+  if(!_wv.ot[uid])_wv.ot[uid]={ot:"",note:""};
+  _wv.ot[uid].note=el.value;
+}
+
+// ---- 假單編輯器（修改既有／補登）----
+function _wvCloseEditor(){var e=document.getElementById("wv-editor");if(e)e.remove()}
+function _wvEditorHtml(title,sub,type,start,end,isAdd){
+  var opts=(_wv.data.leaveTypes||[]).map(function(n){return '<option value="'+_wvEsc(n)+'"'+(n===type?' selected':'')+'>'+_wvEsc(n)+'</option>'}).join('');
+  return '<div class="card"><div class="flex items-center justify-between"><div class="font-bold text-gray-800">'+_wvEsc(title)+'</div><button onclick="_wvCloseEditor()" class="text-gray-400 text-2xl leading-none">×</button></div>'
+    +'<div class="text-xs text-gray-500 mt-1">'+sub+'</div>'
+    +'<label>假別</label><select id="wve-type">'+opts+'</select>'
+    +'<label>開始</label><input id="wve-start" type="datetime-local" value="'+_wvEsc(start)+'">'
+    +'<label>結束</label><input id="wve-end" type="datetime-local" value="'+_wvEsc(end)+'">'
+    +(isAdd?'<label>備註（選填）</label><input id="wve-note" type="text" maxlength="100" placeholder="例：當日未到、電話告知">':'')
+    +'<div class="text-[11px] text-amber-700 bg-amber-50 rounded-lg px-2 py-1.5 mt-3">會直接'+(isAdd?'新增一張「已核准」假單':'修改原始假單')+'並同步 Google 日曆；改到特休會自動重算特休餘額。天數／時數由系統依起訖時間計算。</div>'
+    +'<div class="flex gap-2 mt-3"><button onclick="_wvCloseEditor()" class="flex-1 bg-gray-100 text-gray-700 rounded-xl py-2.5 text-sm">取消</button>'
+    +'<button id="wve-save" class="flex-1 bg-indigo-600 text-white rounded-xl py-2.5 text-sm font-bold">'+(isAdd?'補登假單':'儲存修改')+'</button></div></div>';
+}
+function _wvOpenEditor(html,onSave){
+  _wvCloseEditor();
+  var d=document.createElement("div");d.id="wv-editor";d.innerHTML=html;
+  d.addEventListener("click",function(ev){if(ev.target===d)_wvCloseEditor()});
+  document.body.appendChild(d);
+  document.getElementById("wve-save").onclick=onSave;
+}
+function wvEditLeave(ti,dayKey,li){
+  var t=_wv.data.teachers[ti],l=t.daily[dayKey].lvs[li];
+  var sub=_wvEsc(t.label)+'｜原假單：'+_wvEsc(l.type)+' '+_wvEsc(l.start)+' ~ '+_wvEsc(l.end)+'（'+l.d+' 天／'+l.h+' 小時）'+(l.pending?'｜待審核':'');
+  _wvOpenEditor(_wvEditorHtml("✏️ 修改假單",sub,l.type,_wvDT(l.start),_wvDT(l.end),false),async function(){
+    var type=document.getElementById("wve-type").value,s=document.getElementById("wve-start").value,e=document.getElementById("wve-end").value;
+    if(!s||!e){alert("請填寫起訖時間");return}
+    var p={action:"wvUpdateLeave",adminUid:userId,row:l.row,uid:t.uid,origStart:l.start,type:type};
+    if(s!==_wvDT(l.start)||e!==_wvDT(l.end)){p.start=s;p.end=e}
+    if(type===l.type&&!p.start){alert("沒有任何變更");return}
+    await _wvSubmit(p);
+  });
+}
+function wvAddLeaveUI(ti,dayKey){
+  var t=_wv.data.teachers[ti];
+  if(!dayKey){var ab=_wv.data.days.filter(function(d){return !d.weekend&&t.daily[d.key]&&t.daily[d.key].absent});dayKey=ab.length?ab[0].key:_wv.data.weekStart}
+  var iso=_wvIso(dayKey);
+  _wvOpenEditor(_wvEditorHtml("＋ 補登假單",_wvEsc(t.label)+'｜'+_wvEsc(dayKey),"事假",iso+"T08:00",iso+"T17:00",true),async function(){
+    var type=document.getElementById("wve-type").value,s=document.getElementById("wve-start").value,e=document.getElementById("wve-end").value,n=document.getElementById("wve-note").value;
+    if(!s||!e){alert("請填寫起訖時間");return}
+    await _wvSubmit({action:"wvAddLeave",adminUid:userId,uid:t.uid,type:type,start:s,end:e,note:n});
+  });
+}
+async function _wvSubmit(p){
+  if(_wv.busy)return;
+  var btn=document.getElementById("wve-save");
+  _wv.busy=true;if(btn){btn.disabled=true;btn.textContent="處理中…"}
+  try{
+    var r=await postToGAS(p);
+    if(!r||!r.ok)throw new Error((r&&r.message)||"失敗");
+    _wvCloseEditor();
+    alert("✅ "+r.message);
+    _wv.busy=false;
+    await wvLoad(0);
+  }catch(e){
+    alert("❌ "+(e&&e.message?e.message:e)+"\n\n若不確定是否已寫入，請先重新整理畫面確認，再決定要不要重送。");
+    if(btn){btn.disabled=false;btn.textContent=p.action==="wvAddLeave"?"補登假單":"儲存修改"}
+  }finally{_wv.busy=false}
+}
+
+// ---- 核實存檔 ----
 async function wvConfirm(){
   var r=_wv.data;if(!r||_wv.busy)return;
-  var msg="確認核實 "+r.rangeLabel+" 的出缺勤？\n\n加班合計 "+r.totalOt+" 小時\n系統會重新計算一次，存進試算表 Weekly_Verify 分頁。";
+  var overrides={},changed=[],missingNote=[];
+  r.teachers.forEach(function(t){
+    var o=_wv.ot[t.uid];if(!o)return;
+    var fin=_wvFinalOt(t),note=String(o.note||"").trim();
+    if(fin!==t.otHours||note){overrides[t.uid]={ot:fin,note:note}}
+    if(fin!==t.otHours){changed.push(t.label+"："+t.otHours+" → "+fin+" 小時");if(!note)missingNote.push(t.label)}
+  });
+  if(missingNote.length&&!confirm("以下老師的加班有修改但沒填調整說明：\n"+missingNote.join("、")+"\n\n仍要存檔嗎？"))return;
+  var tt=_wvTotals();
+  var msg="確認核實 "+r.rangeLabel+" 的出缺勤？\n\n加班合計：系統 "+tt.sys+" 小時"+(tt.fin!==tt.sys?"，核實 "+tt.fin+" 小時":"");
+  if(changed.length)msg+="\n\n修改的加班：\n"+changed.join("\n");
   if(r.verified)msg+="\n\n這週已由 "+r.verified.by+" 於 "+r.verified.at+" 核實過，將覆蓋舊紀錄。";
   if(!confirm(msg))return;
   var btn=document.getElementById("wv-confirm-btn");
   _wv.busy=true;
   if(btn){btn.disabled=true;btn.textContent="存檔中…"}
   try{
-    var res=await postToGAS({action:"confirmWeekVerify",adminUid:userId,weekOf:_wv.weekOf});
+    var res=await postToGAS({action:"confirmWeekVerify",adminUid:userId,weekOf:_wv.weekOf,overrides:overrides});
     if(!res||!res.ok)throw new Error((res&&res.message)||"存檔失敗");
-    _wv.data.verified=res.verified;
-    if(typeof res.totalOt==="number"&&res.totalOt!==r.totalOt){
-      _wv.busy=false;await wvLoad(0);
-      alert("已核實並存檔。\n注意：存檔時重新計算的加班合計為 "+res.totalOt+" 小時（剛才畫面為 "+r.totalOt+" 小時，期間有新的打卡或假單），畫面已更新。");
-      return;
-    }
-    wvRender();
+    _wv.busy=false;
+    await wvLoad(0);
+    alert("✅ 已核實並存檔\n加班合計：系統 "+res.totalOt+" 小時｜核實 "+res.totalOtFinal+" 小時（修改 "+res.changed+" 位）");
   }catch(e){
-    alert("核實失敗："+(e&&e.message?e.message:e)+"\n\n請重新整理後再按一次（重複核實不會產生重複資料）。");
-    if(btn){btn.disabled=false;btn.textContent=r.verified?'🔁 重新核實（覆蓋先前紀錄）':'✅ 核實無誤，存檔'}
+    alert("核實失敗："+(e&&e.message?e.message:e)+"\n\n可以直接再按一次（重複核實會覆蓋，不會產生重複資料）。");
+    if(btn){btn.disabled=false;btn.textContent=r.verified?'🔁 重新核實並存檔（覆蓋先前紀錄）':'✅ 核實無誤，存檔'}
   }finally{_wv.busy=false}
 }
 
